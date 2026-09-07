@@ -1,0 +1,167 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-a-direct",
+        "zoneId": "zone-a",
+        "name": "Direct route",
+        "kind": "direct",
+        "freshness": "DEMO"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.872,
+            10.767
+          ],
+          [
+            80.005,
+            10.78
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-a-waypoint",
+        "zoneId": "zone-a",
+        "name": "Southern passage",
+        "kind": "waypoint",
+        "freshness": "DEMO"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.872,
+            10.767
+          ],
+          [
+            79.925,
+            10.726
+          ],
+          [
+            80.075,
+            10.726
+          ],
+          [
+            80.005,
+            10.78
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-b-direct",
+        "zoneId": "zone-b",
+        "name": "Direct route",
+        "kind": "direct",
+        "freshness": "DEMO"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.872,
+            10.767
+          ],
+          [
+            80.1,
+            10.87
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-b-waypoint",
+        "zoneId": "zone-b",
+        "name": "Southern passage",
+        "kind": "waypoint",
+        "freshness": "DEMO"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.872,
+            10.767
+          ],
+          [
+            79.925,
+            10.726
+          ],
+          [
+            80.075,
+            10.726
+          ],
+          [
+            80.1,
+            10.87
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-c-direct",
+        "zoneId": "zone-c",
+        "name": "Direct route",
+        "kind": "direct",
+        "freshness": "DEMO"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.872,
+            10.767
+          ],
+          [
+            80.045,
+            10.625
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-c-waypoint",
+        "zoneId": "zone-c",
+        "name": "Southern passage",
+        "kind": "waypoint",
+        "freshness": "DEMO"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.872,
+            10.767
+          ],
+          [
+            79.925,
+            10.726
+          ],
+          [
+            80.075,
+            10.726
+          ],
+          [
+            80.045,
+            10.625
+          ]
+        ]
+      }
+    }
+  ]
+}

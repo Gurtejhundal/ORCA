@@ -1,0 +1,28 @@
+{
+  "name": "orca",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*", "services/*"],
+  "scripts": {
+    "dev": "npm run dev --workspace @orca/web",
+    "build": "npm run build --workspace @orca/web",
+    "start": "npm run start --workspace @orca/web",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspace @orca/web",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "evaluate": "tsx scripts/evaluate.ts"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": { "node": ">=20.9" }
+}

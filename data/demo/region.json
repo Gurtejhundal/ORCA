@@ -1,0 +1,59 @@
+{
+  "freshness": "DEMO",
+  "sourceName": "ORCA Demo Dataset",
+  "note": "Schematic coastline and water mask; not a nautical chart.",
+  "water": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          79.861,
+          10.54
+        ],
+        [
+          80.22,
+          10.54
+        ],
+        [
+          80.22,
+          11.02
+        ],
+        [
+          79.861,
+          11.02
+        ],
+        [
+          79.861,
+          10.54
+        ]
+      ]
+    ]
+  },
+  "land": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          79.65,
+          10.54
+        ],
+        [
+          79.861,
+          10.54
+        ],
+        [
+          79.861,
+          11.02
+        ],
+        [
+          79.65,
+          11.02
+        ],
+        [
+          79.65,
+          10.54
+        ]
+      ]
+    ]
+  }
+}

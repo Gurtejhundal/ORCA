@@ -1,0 +1,85 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hazard-1",
+        "name": "Elevated wave area",
+        "category": "hazard",
+        "severity": "elevated",
+        "sourceName": "ORCA Demo Dataset",
+        "freshness": "DEMO",
+        "validFrom": "2026-09-07T00:00:00+05:30",
+        "validTo": "2026-09-08T00:00:00+05:30"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              79.97,
+              10.755
+            ],
+            [
+              80.04,
+              10.755
+            ],
+            [
+              80.04,
+              10.81
+            ],
+            [
+              79.97,
+              10.81
+            ],
+            [
+              79.97,
+              10.755
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "restricted-1",
+        "name": "Restricted demonstration area",
+        "category": "restricted",
+        "severity": "forbidden",
+        "sourceName": "ORCA Demo Dataset",
+        "freshness": "DEMO",
+        "validFrom": "2026-09-07T00:00:00+05:30",
+        "validTo": "2026-09-08T00:00:00+05:30"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              79.94,
+              10.8
+            ],
+            [
+              80.025,
+              10.8
+            ],
+            [
+              80.025,
+              10.85
+            ],
+            [
+              79.94,
+              10.85
+            ],
+            [
+              79.94,
+              10.8
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

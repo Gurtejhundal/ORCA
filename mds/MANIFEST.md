@@ -1,0 +1,20 @@
+# Manifest
+
+Reference image included: yes
+
+- `00_README.md` — `6ff3a4fcfb91`
+- `01_DESIGN_NORTH_STAR.md` — `57d72de43cdd`
+- `02_HERO_EXACT_SPEC.md` — `0ad4073658bb`
+- `03_VISUAL_LANGUAGE.md` — `5b78738abc7f`
+- `04_LIQUID_GLASS_SYSTEM.md` — `ffa824958452`
+- `05_COLOR_AND_TYPE.md` — `2d09b815c8da`
+- `06_MOTION_LANGUAGE.md` — `6f2dcbe824e1`
+- `07_COMPONENT_SYSTEM.md` — `3c98e6d897cf`
+- `08_PAGE_LANGUAGE.md` — `801a0771f599`
+- `09_RESPONSIVE_RULES.md` — `cbeb25d367ef`
+- `10_INTERACTION_MODEL.md` — `883f28c4fac8`
+- `11_ACCESSIBILITY_AND_PERFORMANCE.md` — `1422b655f12d`
+- `12_DESIGN_TOKENS.md` — `36061fa57c25`
+- `13_CODEX_IMPLEMENTATION_PROMPT.md` — `4158248075e5`
+- `14_DO_NOTS.md` — `b36e24fc82a7`
+- `REFERENCE_HERO.png` — `c7cb993e3cb3`

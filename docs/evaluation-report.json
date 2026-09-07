@@ -1,0 +1,162 @@
+{
+  "evaluatedAt": "2026-09-06T07:04:22.880Z",
+  "engineVersion": "prototype-1",
+  "evaluationKind": "Controlled, synthetic acceptance cases authored with this implementation. Not a held-out real-world benchmark.",
+  "requestedRealWorldAccuracy": 0.99,
+  "measuredRealWorldAccuracy": null,
+  "trainedModel": false,
+  "passed": 16,
+  "total": 16,
+  "unsupportedNumericClaims": 0,
+  "notes": [
+    "Passing these cases measures conformance to this demo specification, not marine prediction skill.",
+    "No catch, vessel, hazard or expert-labelled real-world outcomes were used.",
+    "Evidence confidence and deterministic safety scores are not probabilities or model accuracy."
+  ],
+  "results": [
+    {
+      "id": "flagship",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": "zone-b",
+      "decisionStatus": "RECOMMENDED",
+      "unsupportedNumbers": [],
+      "durationMs": 182.82
+    },
+    {
+      "id": "24-hour-clock",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": "zone-b",
+      "decisionStatus": "RECOMMENDED",
+      "unsupportedNumbers": [],
+      "durationMs": 134.12
+    },
+    {
+      "id": "explicit-date",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": "zone-b",
+      "decisionStatus": "RECOMMENDED",
+      "unsupportedNumbers": [],
+      "durationMs": 141.83
+    },
+    {
+      "id": "high-waves",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": "zone-c",
+      "decisionStatus": "RECOMMENDED",
+      "unsupportedNumbers": [],
+      "durationMs": 146.54
+    },
+    {
+      "id": "closure",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": "zone-c",
+      "decisionStatus": "RECOMMENDED",
+      "unsupportedNumbers": [],
+      "durationMs": 131.56
+    },
+    {
+      "id": "missing-marine",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": null,
+      "decisionStatus": "INSUFFICIENT_DATA",
+      "unsupportedNumbers": [],
+      "durationMs": 39.56
+    },
+    {
+      "id": "expired-window",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": null,
+      "decisionStatus": "INSUFFICIENT_DATA",
+      "unsupportedNumbers": [],
+      "durationMs": 1.45
+    },
+    {
+      "id": "expires-during-transit",
+      "passed": true,
+      "status": "COMPLETE",
+      "selectedZone": null,
+      "decisionStatus": "INSUFFICIENT_DATA",
+      "unsupportedNumbers": [],
+      "durationMs": 50.09
+    },
+    {
+      "id": "missing-location",
+      "passed": true,
+      "status": "CLARIFICATION",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.3
+    },
+    {
+      "id": "missing-time",
+      "passed": true,
+      "status": "CLARIFICATION",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.26
+    },
+    {
+      "id": "ambiguous-time",
+      "passed": true,
+      "status": "CLARIFICATION",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.26
+    },
+    {
+      "id": "invalid-hour",
+      "passed": true,
+      "status": "CLARIFICATION",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.08
+    },
+    {
+      "id": "invalid-calendar",
+      "passed": true,
+      "status": "CLARIFICATION",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.13
+    },
+    {
+      "id": "unsupported-port",
+      "passed": true,
+      "status": "UNSUPPORTED",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.03
+    },
+    {
+      "id": "unrelated-question",
+      "passed": true,
+      "status": "UNSUPPORTED",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.03
+    },
+    {
+      "id": "safety-override",
+      "passed": true,
+      "status": "UNSUPPORTED",
+      "selectedZone": null,
+      "decisionStatus": null,
+      "unsupportedNumbers": [],
+      "durationMs": 0.02
+    }
+  ]
+}

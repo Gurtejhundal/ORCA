@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["packages/**/*.ts", "services/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "apps"]
+}

@@ -1,0 +1,62 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-a",
+        "name": "Zone A",
+        "source": "ORCA Demo Dataset",
+        "freshness": "DEMO",
+        "evidenceIds": [
+          "e-zone-a-pfzSignal"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.005,
+          10.78
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-b",
+        "name": "Zone B",
+        "source": "ORCA Demo Dataset",
+        "freshness": "DEMO",
+        "evidenceIds": [
+          "e-zone-b-pfzSignal"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.1,
+          10.87
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-c",
+        "name": "Zone C",
+        "source": "ORCA Demo Dataset",
+        "freshness": "DEMO",
+        "evidenceIds": [
+          "e-zone-c-pfzSignal"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.045,
+          10.625
+        ]
+      }
+    }
+  ]
+}

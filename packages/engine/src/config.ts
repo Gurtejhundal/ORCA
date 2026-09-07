@@ -1,0 +1,43 @@
+// Prototype parameters from mds/09_DECISION_ENGINE.md. These are NOT nautical standards.
+export const CONFIG = {
+  version: 'prototype-1',
+  replayClock: '2026-09-06T12:00:00+05:30',
+  riskWeights: {
+    wave: 0.3,
+    wind: 0.2,
+    alert: 0.2,
+    current: 0.1,
+    boundary: 0.15,
+    uncertainty: 0.05,
+  },
+  normalization: { waveM: 4, windMs: 20, currentMs: 2, alert: 3 },
+  gates: { waveM: 3, windMs: 15, currentMs: 1.8, alertSeverity: 3 },
+  minimumSafety: 65,
+  minimumConfidence: 0.5,
+  cautionSafety: 80,
+  route: {
+    sampleKm: 1,
+    speedKmH: 12,
+    distanceScaleKm: 50,
+    distanceWeight: 0.1,
+    meanWeight: 0.35,
+    maxWeight: 0.45,
+    uncertaintyWeight: 0.1,
+  },
+  confidence: {
+    demoFreshness: 0.85,
+    cacheHalfLifeHours: 24,
+    maxCellDistanceKm: 40,
+  },
+  opportunity: {
+    pfz: 0.45,
+    sst: 0.25,
+    chlorophyll: 0.2,
+    other: 0.1,
+    optimalSstC: 28,
+    sstToleranceC: 8,
+    optimalChl: 1.5,
+    chlTolerance: 2,
+  },
+  utility: { safetyPenalty: 0.8, distancePenalty: 0.15 },
+} as const;
