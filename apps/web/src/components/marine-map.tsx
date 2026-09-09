@@ -1,379 +1,279 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import type { DecisionResponse } from '@orca/contracts';
-import type { FeatureCollection } from 'geojson';
-import maplibregl, { type Map as LibreMap } from 'maplibre-gl';
-import { Compass, Focus, Layers, Minus, Plus } from 'lucide-react';
 
-function frameMap(map: LibreMap, decision: DecisionResponse) {
-  const bounds = new maplibregl.LngLatBounds();
-  bounds.extend([decision.plan.origin.lon, decision.plan.origin.lat]);
-  for (const zone of decision.zones)
-    bounds.extend(zone.geometry.coordinates as [number, number]);
-  for (const route of decision.routes)
-    for (const pos of route.geometry.coordinates)
-      bounds.extend(pos as [number, number]);
-  for (const fence of decision.geofences)
-    for (const pos of fence.geometry.coordinates[0])
-      bounds.extend(pos as [number, number]);
-  const compact = map.getContainer().clientWidth < 600;
-  map.fitBounds(bounds, {
-    padding: {
-      top: 115,
-      bottom: compact ? 150 : 100,
-      left: compact ? 60 : 100,
-      right: compact ? 65 : 130,
-    },
-    maxZoom: 11,
-    duration: 0,
-  });
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as maplibregl from 'maplibre-gl';
+import type { Map as MapLibreMap } from 'maplibre-gl';
+import type { DecisionResponse } from '@orca/contracts';
+import type { Feature, FeatureCollection, Position } from 'geojson';
+import { Compass, Focus, Layers, Minus, Plus } from 'lucide-react';
+import type { Location, MapActionPayload } from '@/services/marine-api';
+import { backendMapAction } from '@/services/backend-map-actions';
+import {
+  createMapLibreController,
+  MAP_STYLE_URL,
+  type MapLibreController,
+  type MapPosition,
+} from '@/services/maplibre-map';
+
+const EMPTY_LAYER: FeatureCollection = { type: 'FeatureCollection', features: [] };
+
+function featureLayer(
+  layers: FeatureCollection,
+  kind: string,
+  onlyVisible = false,
+): FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: layers.features.filter(
+      (feature) =>
+        feature.properties?.kind === kind &&
+        (!onlyVisible || feature.properties?.visible === true),
+    ),
+  };
 }
+
+function scenarioGrid(): FeatureCollection {
+  const features: Feature[] = [];
+  for (let lon = 79.8; lon <= 80.21; lon += 0.05)
+    features.push({
+      type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[lon, 10.54], [lon, 11.02]] },
+    });
+  for (let lat = 10.55; lat <= 11.01; lat += 0.05)
+    features.push({
+      type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[79.8, lat], [80.22, lat]] },
+    });
+  return { type: 'FeatureCollection', features };
+}
+
+function pointPosition(coordinates: number[]): MapPosition | null {
+  const [lon, lat] = coordinates;
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+}
+
+function frameMap(
+  controller: MapLibreController,
+  decision: DecisionResponse,
+  currentLocation?: Location,
+) {
+  const positions: Position[] = [[decision.plan.origin.lon, decision.plan.origin.lat]];
+  const extend = (position: MapPosition | null) => {
+    if (position) positions.push([position.lon, position.lat]);
+  };
+  decision.zones.forEach((zone) => extend(pointPosition(zone.geometry.coordinates)));
+  decision.routes.forEach((route) => route.geometry.coordinates.forEach((position) => extend(pointPosition(position))));
+  decision.geofences.forEach((fence) => fence.geometry.coordinates[0].forEach((position) => extend(pointPosition(position))));
+  if (currentLocation) extend(currentLocation);
+  controller.fitBounds(positions, window.innerWidth < 600 ? 60 : 100);
+}
+
+function popupText(
+  properties: Record<string, unknown>,
+  fields: Array<[string, string]>,
+): string {
+  return fields
+    .flatMap(([key, label]) => {
+      const value = properties[key];
+      return typeof value === 'string' || typeof value === 'number' ? [`${label}: ${value}`] : [];
+    })
+    .join('\n');
+}
+
 export function MarineMap({
   decision,
   onSelectZone,
+  marineLayer,
+  onLocation,
+  currentLocation,
+  mapActions,
 }: {
   decision: DecisionResponse;
   onSelectZone: (id: string) => void;
+  marineLayer?: FeatureCollection;
+  onLocation?: (location: Location) => void;
+  currentLocation?: Location;
+  mapActions?: MapActionPayload[];
 }) {
   const container = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<LibreMap | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const controllerRef = useRef<MapLibreController | null>(null);
+  const initialCenter = useRef({ lat: decision.map.center.lat, lon: decision.map.center.lon });
   const selectRef = useRef(onSelectZone);
-  const errorRef = useRef<HTMLDivElement>(null);
-  const [layers, setLayers] = useState({
-    hazards: true,
-    restricted: true,
-    routes: true,
-  });
+  const locationRef = useRef(onLocation);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [mapError, setMapError] = useState('');
+  const [layers, setLayers] = useState({ hazards: true, restricted: true, routes: true });
+  const grid = useMemo(scenarioGrid, []);
+
+  useEffect(() => { selectRef.current = onSelectZone; }, [onSelectZone]);
+  useEffect(() => { locationRef.current = onLocation; }, [onLocation]);
+
   useEffect(() => {
-    selectRef.current = onSelectZone;
-  }, [onSelectZone]);
-  useEffect(() => {
-    if (!container.current) return;
-    const reportError = (message: string) => {
-      if (errorRef.current) {
-        errorRef.current.textContent = message;
-        errorRef.current.hidden = false;
+    const element = container.current;
+    if (!element || mapRef.current) return;
+    let cancelled = false;
+    const map = new maplibregl.Map({
+      container: element,
+      style: MAP_STYLE_URL,
+      center: [initialCenter.current.lon, initialCenter.current.lat],
+      zoom: 10.3,
+      minZoom: 2,
+      maxZoom: 14,
+      attributionControl: false,
+    });
+    mapRef.current = map;
+    const loadingTimeout = window.setTimeout(() => {
+      if (!cancelled && !controllerRef.current) {
+        setMapLoading(false);
+        setMapError('Map style could not load. Check the configured map style and browser network connection.');
+      }
+    }, 15000);
+    const onMapError = () => {
+      if (!cancelled) {
+        setMapLoading(false);
+        setMapError('Map tiles could not load. Check the configured map style and browser network connection.');
       }
     };
-    if (errorRef.current) errorRef.current.hidden = true;
-    let map: LibreMap;
-    try {
-      map = new maplibregl.Map({
-        container: container.current,
-        center: [80.0, 10.755],
-        zoom: 10.3,
-        minZoom: 8,
-        maxZoom: 14,
-        pitch: 0,
-        attributionControl: false,
-        canvasContextAttributes: { antialias: false },
-        style: {
-          version: 8,
-          sources: { orca: { type: 'geojson', data: decision.map.layers } },
-          layers: [
-            {
-              id: 'water',
-              type: 'background',
-              paint: { 'background-color': '#102e3b' },
-            },
-            {
-              id: 'land',
-              type: 'fill',
-              source: 'orca',
-              filter: ['==', ['get', 'kind'], 'land'],
-              paint: { 'fill-color': '#243e43' },
-            },
-            {
-              id: 'coast',
-              type: 'line',
-              source: 'orca',
-              filter: ['==', ['get', 'kind'], 'land'],
-              paint: { 'line-color': '#557069', 'line-width': 1.5 },
-            },
-            {
-              id: 'hazards',
-              type: 'fill',
-              source: 'orca',
-              filter: ['==', ['get', 'kind'], 'hazard'],
-              paint: { 'fill-color': '#ea9859', 'fill-opacity': 0.16 },
-            },
-            {
-              id: 'hazard-edge',
-              type: 'line',
-              source: 'orca',
-              filter: ['==', ['get', 'kind'], 'hazard'],
-              paint: {
-                'line-color': '#e7a569',
-                'line-width': 1.3,
-                'line-dasharray': [4, 3],
-              },
-            },
-            {
-              id: 'restricted',
-              type: 'fill',
-              source: 'orca',
-              filter: ['==', ['get', 'kind'], 'restricted'],
-              paint: { 'fill-color': '#dd7d82', 'fill-opacity': 0.15 },
-            },
-            {
-              id: 'restricted-edge',
-              type: 'line',
-              source: 'orca',
-              filter: ['==', ['get', 'kind'], 'restricted'],
-              paint: {
-                'line-color': '#dc8a90',
-                'line-width': 1.3,
-                'line-dasharray': [2, 2],
-              },
-            },
-            {
-              id: 'route-alternative',
-              type: 'line',
-              source: 'orca',
-              filter: [
-                'all',
-                ['==', ['get', 'kind'], 'route'],
-                ['==', ['get', 'visible'], true],
-                ['==', ['get', 'recommended'], false],
-              ],
-              paint: {
-                'line-color': '#d9a575',
-                'line-width': 2,
-                'line-dasharray': [3, 3],
-                'line-opacity': 0.8,
-              },
-            },
-            {
-              id: 'route-glow',
-              type: 'line',
-              source: 'orca',
-              filter: [
-                'all',
-                ['==', ['get', 'kind'], 'route'],
-                ['==', ['get', 'recommended'], true],
-              ],
-              paint: {
-                'line-color': '#63debe',
-                'line-width': 10,
-                'line-opacity': 0.09,
-              },
-            },
-            {
-              id: 'route-recommended',
-              type: 'line',
-              source: 'orca',
-              filter: [
-                'all',
-                ['==', ['get', 'kind'], 'route'],
-                ['==', ['get', 'recommended'], true],
-              ],
-              paint: { 'line-color': '#7de6c6', 'line-width': 3 },
-            },
-          ],
-        },
-      });
-    } catch {
-      reportError(
-        'WebGL is unavailable. The zone, route and evidence tables below contain the full decision.',
-      );
-      return;
-    }
-    mapRef.current = map;
-    const markers: maplibregl.Marker[] = [];
-    map.on('error', () =>
-      reportError(
-        'The map could not render completely. Use the route and evidence tables below.',
-      ),
-    );
-    map.on('load', () => {
-      const grid: FeatureCollection = {
-        type: 'FeatureCollection',
-        features: [],
-      };
-      for (let lon = 79.8; lon <= 80.21; lon += 0.05)
-        grid.features.push({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [lon, 10.54],
-              [lon, 11.02],
-            ],
-          },
-        });
-      for (let lat = 10.55; lat <= 11.01; lat += 0.05)
-        grid.features.push({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [79.8, lat],
-              [80.22, lat],
-            ],
-          },
-        });
-      map.addSource('grid', { type: 'geojson', data: grid });
-      map.addLayer(
-        {
-          id: 'grid-lines',
-          type: 'line',
-          source: 'grid',
-          paint: {
-            'line-color': '#77989e',
-            'line-opacity': 0.1,
-            'line-width': 1,
-          },
-        },
-        'hazards',
-      );
-      for (const zone of decision.zones) {
-        const button = document.createElement('button');
-        const selected = zone.id === decision.recommendation.candidateZoneId;
-        button.className =
-          'zone-marker ' +
-          (selected
-            ? 'recommended'
-            : zone.rejected
-              ? 'rejected'
-              : 'alternative');
-        button.setAttribute('aria-label', 'Inspect ' + zone.name);
-        const letter = document.createElement('span');
-        letter.className = 'zone-letter';
-        letter.textContent = zone.name.slice(-1);
-        const label = document.createElement('span');
-        label.className = 'zone-map-label';
-        label.textContent =
-          zone.name +
-          (selected
-            ? ' · Recommended'
-            : zone.rejected
-              ? ' · Rejected'
-              : ' · Alternative');
-        button.append(letter, label);
-        button.onclick = () => selectRef.current(zone.id);
-        markers.push(
-          new maplibregl.Marker({ element: button, anchor: 'center' })
-            .setLngLat(zone.geometry.coordinates as [number, number])
-            .addTo(map),
-        );
-      }
-      const port = document.createElement('div');
-      port.className = 'origin-marker';
-      const dot = document.createElement('span');
-      dot.className = 'port-dot';
-      const label = document.createElement('span');
-      label.textContent = 'NAGAPATTINAM';
-      port.append(dot, label);
-      markers.push(
-        new maplibregl.Marker({ element: port })
-          .setLngLat([decision.plan.origin.lon, decision.plan.origin.lat])
-          .addTo(map),
-      );
-      frameMap(map, decision);
-    });
+    map.on('error', onMapError);
+    map.on('click', (event) => locationRef.current?.({ lat: event.lngLat.lat, lon: event.lngLat.lng }));
+    const initializeLayers = () => {
+      if (cancelled || controllerRef.current) return;
+      controllerRef.current = createMapLibreController(map);
+      window.clearTimeout(loadingTimeout);
+      setMapLoading(false);
+      setMapError('');
+      setMapReady(true);
+    };
+    map.once('style.load', initializeLayers);
     const observer = new ResizeObserver(() => map.resize());
-    observer.observe(container.current);
+    observer.observe(element);
+
     return () => {
+      cancelled = true;
+      window.clearTimeout(loadingTimeout);
       observer.disconnect();
-      markers.forEach((m) => m.remove());
+      controllerRef.current?.dispose();
+      controllerRef.current = null;
       map.remove();
       mapRef.current = null;
+      setMapReady(false);
     };
-  }, [decision]);
+  }, []);
+
   useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller || !mapReady) return;
+    controller.apply({
+      type: 'ADD_LAYER', id: 'grid', geojson: grid,
+      options: { lineColor: '#77989e', lineOpacity: 0.16, lineWidth: 1 },
+    });
+    controller.apply({ type: 'SHOW_HAZARD_ZONE', id: 'hazards', geojson: featureLayer(decision.map.layers, 'hazard') });
+    controller.apply({
+      type: 'ADD_LAYER', id: 'restricted', geojson: featureLayer(decision.map.layers, 'restricted'),
+      options: { fillColor: '#dd7d82', fillOpacity: 0.15, lineColor: '#dc8a90', lineWidth: 1.5 },
+    });
+    controller.apply({
+      type: 'ADD_LAYER', id: 'routes', geojson: featureLayer(decision.map.layers, 'route', true),
+      options: {
+        lineColor: '#7de6c6', lineOpacity: 0.95, lineWidth: 3,
+        popupText: (properties) => popupText(properties, [['name', 'Route'], ['freshness', 'Freshness']]),
+      },
+    });
+    controller.apply({
+      type: 'SHOW_MARKERS', id: 'scenario-markers',
+      markers: [
+        { id: 'origin', kind: 'origin', label: 'NAGAPATTINAM', position: decision.plan.origin, title: 'Nagapattinam port' },
+        ...decision.zones.flatMap((zone) => {
+          const position = pointPosition(zone.geometry.coordinates);
+          if (!position) return [];
+          const status: 'recommended' | 'rejected' | 'alternative' = zone.id === decision.recommendation.candidateZoneId ? 'recommended' : zone.rejected ? 'rejected' : 'alternative';
+          return [{
+            id: zone.id, kind: 'zone' as const, label: zone.name.slice(-1), position,
+            status, title: `${zone.name} · ${status === 'recommended' ? 'Recommended' : status === 'rejected' ? 'Rejected' : 'Alternative'}`,
+            onClick: () => selectRef.current(zone.id),
+          }];
+        }),
+      ],
+    });
+    frameMap(controller, decision, currentLocation);
+  }, [decision, grid, mapReady]);
+
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller || !mapReady) return;
+    controller.setLayerVisible('hazards', layers.hazards);
+    controller.setLayerVisible('restricted', layers.restricted);
+    controller.setLayerVisible('routes', layers.routes);
+  }, [layers, mapReady]);
+
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller || !mapReady) return;
+    controller.apply({
+      type: 'ADD_LAYER', id: 'pfz', geojson: marineLayer ?? EMPTY_LAYER,
+      options: {
+        fillColor: '#61b7ff', fillOpacity: 0.25, lineColor: '#61b7ff', lineWidth: 2,
+        popupText: (properties) => popupText(properties, [
+          ['name', 'PFZ'], ['distance_km', 'Distance km'], ['valid_until', 'Valid until'], ['source', 'Source'], ['freshness_minutes', 'Freshness min'],
+        ]),
+      },
+    });
+  }, [mapReady, marineLayer]);
+
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller || !mapReady || !currentLocation) return;
+    controller.apply({
+      type: 'SHOW_MARKERS', id: 'current-location',
+      markers: [{ id: 'current-location', kind: 'location', label: '●', position: currentLocation, title: 'Selected fisherman location' }],
+    });
+  }, [currentLocation, mapReady]);
+
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller || !mapReady) return;
+    const actions = (mapActions ?? []).map(backendMapAction).filter(a => a !== null);
+    actions.forEach(a => controller.apply(a));
+    return () => actions.forEach(a => {
+      if ('id' in a && a.id) {
+        controller.apply({ type: 'REMOVE_LAYER', id: a.id });
+        if (a.type === 'SHOW_MARKERS') controller.apply({ type: 'SHOW_MARKERS', id: a.id, markers: [] });
+      }
+    });
+  }, [mapActions, mapReady]);
+
+  const zoom = (delta: number) => {
     const map = mapRef.current;
-    if (!map) return;
-    const apply = () => {
-      const ids = {
-        hazards: ['hazards', 'hazard-edge'],
-        restricted: ['restricted', 'restricted-edge'],
-        routes: ['route-alternative', 'route-glow', 'route-recommended'],
-      };
-      for (const [key, names] of Object.entries(ids))
-        for (const id of names) {
-          if (map.getLayer(id))
-            map.setLayoutProperty(
-              id,
-              'visibility',
-              layers[key as keyof typeof layers] ? 'visible' : 'none',
-            );
-        }
-    };
-    if (map.isStyleLoaded()) apply();
-    else map.once('load', apply);
-    return () => {
-      map.off('load', apply);
-    };
-  }, [layers, decision]);
+    if (map) map.setZoom(Math.min(14, Math.max(2, map.getZoom() + delta)));
+  };
+
   return (
-    <section
-      className="marine-map"
-      aria-label="Interactive marine scenario map"
-    >
+    <section id="marine-map" className="marine-map" aria-label="Interactive marine scenario map" aria-busy={mapLoading}>
       <div ref={container} className="map-canvas" data-testid="marine-map" />
-      <div className="map-title">
-        <span className="eyebrow">OPERATING AREA / 01</span>
-        <h2>Nagapattinam coast</h2>
-        <span>Bay of Bengal · Synthetic replay</span>
-      </div>
-      <div className="map-north">
-        <Compass size={23} />
-        <span>N</span>
-      </div>
-      <div className="map-sea-name" aria-hidden="true">
-        BAY OF
-        <br />
-        BENGAL
-      </div>
+      <div hidden={!mapLoading} className="map-loading" role="status">Loading marine map…</div>
+      <div className="map-title"><span className="eyebrow">OPERATING AREA / 01</span><h2>Nagapattinam coast</h2><span>Bay of Bengal · Synthetic replay</span></div>
+      <div className="map-north"><Compass size={23} /><span>N</span></div>
+      <div className="map-sea-name" aria-hidden="true">BAY OF<br />BENGAL</div>
       <div className="map-controls">
-        <button aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn()}>
-          <Plus size={18} />
-        </button>
-        <button aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut()}>
-          <Minus size={18} />
-        </button>
-        <button
-          aria-label="Frame all zones"
-          onClick={() => {
-            if (mapRef.current) frameMap(mapRef.current, decision);
-          }}
-        >
-          <Focus size={18} />
-        </button>
+        <button aria-label="Zoom in" onClick={() => zoom(1)}><Plus size={18} /></button>
+        <button aria-label="Zoom out" onClick={() => zoom(-1)}><Minus size={18} /></button>
+        <button aria-label="Frame all zones" onClick={() => {
+          const controller = controllerRef.current;
+          if (controller) frameMap(controller, decision, currentLocation);
+        }}><Focus size={18} /></button>
       </div>
       <div className="map-layer-controls">
         <Layers size={14} />
         {Object.entries(layers).map(([key, visible]) => (
-          <button
-            key={key}
-            aria-pressed={visible}
-            onClick={() =>
-              setLayers((current) => ({ ...current, [key]: !visible }))
-            }
-          >
+          <button key={key} aria-pressed={visible} onClick={() => setLayers((current) => ({ ...current, [key]: !visible }))}>
             <span className={'layer-dot ' + key} />
-            {key === 'restricted'
-              ? 'Restricted'
-              : key[0].toUpperCase() + key.slice(1)}
+            {key === 'restricted' ? 'Restricted' : key[0].toUpperCase() + key.slice(1)}
           </button>
         ))}
       </div>
-      <div className="map-legend">
-        <span>
-          <i className="line-key" />
-          Recommended
-        </span>
-        <span>
-          <i className="line-key dashed" />
-          Alternative
-        </span>
-      </div>
-      <div className="map-attribution">
-        ORCA DEMO · Schematic coast & water mask · Not a nautical chart
-      </div>
-      <div ref={errorRef} hidden className="map-error" role="alert" />
+      <div className="map-legend"><span><i className="line-key" />Recommended</span><span><i className="line-key dashed" />Alternative</span></div>
+      <div className="map-attribution">© OpenStreetMap contributors · Scenario layers are DEMO · Backend PFZ is separately labelled · Not a nautical chart</div>
+      <div hidden={!mapError} className="map-error" role="alert">{mapError}</div>
     </section>
   );
 }

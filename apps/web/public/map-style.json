@@ -1,0 +1,22 @@
+{
+  "version": 8,
+  "name": "SamudraAI OpenStreetMap raster base",
+  "sources": {
+    "openstreetmap": {
+      "type": "raster",
+      "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "openstreetmap-base",
+      "type": "raster",
+      "source": "openstreetmap",
+      "minzoom": 0,
+      "maxzoom": 19
+    }
+  ]
+}

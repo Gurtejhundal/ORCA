@@ -1,0 +1,71 @@
+/* The repository's dormant dashboard had no styles. Scope layout support to it;
+   the hero's global overflow and all landing-page styles remain untouched. */
+.app-shell { height: 100dvh; overflow: auto; padding: 0 4%; background: var(--ink); color: var(--foam); }
+.app-shell main { max-width: 1500px; margin: auto; }
+.app-shell .topbar, .app-shell .brand, .app-shell nav, .app-shell .header-status,
+.app-shell .workspace-heading, .app-shell .section-heading, .app-shell .scenario-control,
+.app-shell .panel-title, .app-shell .metric-label { display: flex; align-items: center; gap: 14px; }
+.app-shell .topbar, .app-shell .workspace-heading, .app-shell .section-heading { justify-content: space-between; padding: 22px 0; }
+.app-shell .brand strong span { display: block; font-size: 10px; letter-spacing: 2px; }
+.app-shell .eyebrow, .app-shell .small-tag { font: 11px var(--font-mono); letter-spacing: 1px; color: var(--foam-muted); }
+.app-shell h1 { font-size: clamp(25px, 3vw, 38px); margin: 8px 0; }
+.app-shell h2 { font-size: 22px; margin: 6px 0; }
+.app-shell h3 { margin: 18px 0 8px; font-weight: 600; }
+.app-shell p { margin: 10px 0; line-height: 1.6; }
+.app-shell small { color: var(--foam-muted); }
+.app-shell button, .app-shell select, .app-shell input, .app-shell textarea { border: 1px solid var(--glass-line); border-radius: 8px; background: #16343f; color: var(--foam); padding: 8px 12px; }
+.app-shell button { cursor: pointer; }
+.app-shell button:disabled { opacity: .5; cursor: wait; }
+.app-shell input { width: 130px; }
+.app-shell textarea { width: 100%; resize: vertical; margin: 10px 0; }
+.app-shell .scenario-control { flex-wrap: wrap; }
+.app-shell .replay-banner { display: flex; justify-content: space-between; flex-wrap: wrap; padding: 12px; background: #193b45; font-size: 12px; }
+.app-shell .badge { display: inline-block; padding: 4px 8px; border: 1px solid var(--glass-line); border-radius: 5px; font: 11px var(--font-mono); }
+.app-shell .intelligence-workspace { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 16px; }
+.app-shell .conversation-panel, .app-shell .decision-section, .app-shell .comparison-section,
+.app-shell .metric-strip article { padding: 20px; border: 1px solid #28434d; border-radius: 12px; background: #0c252f; }
+.app-shell .decision-section { margin: 18px 0; }
+.app-shell .query-chips, .app-shell .trip-context { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.app-shell .trip-context strong { display: block; }
+.app-shell .trace-heading { margin: 24px 0 14px; }
+.app-shell .agent-trace { list-style: none; padding: 0; }
+.app-shell .agent-trace li { display: flex; gap: 10px; margin: 14px 0; }
+.app-shell .agent-trace summary { display: flex; justify-content: space-between; gap: 30px; cursor: pointer; }
+.app-shell .trace-footnote { font-size: 11px; color: var(--foam-muted); }
+.app-shell .map-workspace { min-width: 0; }
+.app-shell .marine-map { position: relative; height: 610px; min-height: 400px; overflow: hidden; border-radius: 12px; }
+.app-shell .map-canvas { position: absolute; inset: 0; }
+.app-shell .map-title { position: absolute; top: 20px; left: 20px; pointer-events: none; }
+.app-shell .map-title span { font-size: 12px; }
+.app-shell .map-north { position: absolute; top: 24px; right: 24px; text-align: center; pointer-events: none; }
+.app-shell .map-north span { display: block; }
+.app-shell .map-controls { position: absolute; right: 16px; bottom: 115px; display: grid; gap: 6px; }
+.app-shell .map-layer-controls { position: absolute; bottom: 55px; left: 15px; display: flex; flex-wrap: wrap; gap: 6px; }
+.app-shell .map-legend { position: absolute; bottom: 30px; left: 15px; font-size: 11px; pointer-events: none; }
+.app-shell .map-attribution { position: absolute; bottom: 8px; left: 15px; font-size: 9px; pointer-events: none; }
+.app-shell .map-sea-name { position: absolute; right: 10%; top: 40%; opacity: .25; letter-spacing: 6px; pointer-events: none; }
+.app-shell .map-error { position: absolute; bottom: 150px; left: 20px; right: 20px; padding: 12px; background: #632e38; }
+.app-shell .map-recommendation { display: flex; gap: 16px; padding: 20px; }
+.app-shell .zone-marker { border-radius: 50%; padding: 8px; position: relative; }
+.app-shell .zone-map-label { position: absolute; top: 36px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10px; }
+.app-shell .origin-marker { font-size: 10px; padding: 4px; background: #294e5b; }
+.app-shell .metric-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.app-shell .metric-strip article > p { font-size: 28px; }
+.app-shell .metric-strip article > p span { font-size: 14px; margin-left: 4px; }
+.app-shell .metric-strip details p { font-size: 12px; overflow-wrap: anywhere; }
+.app-shell .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.app-shell .table-scroll { overflow-x: auto; }
+.app-shell table { width: 100%; border-collapse: collapse; }
+.app-shell th, .app-shell td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #28434d; font-size: 12px; }
+.app-shell summary { cursor: pointer; }
+.app-shell .decision-reasons li { display: flex; gap: 10px; margin: 12px 0; }
+.app-shell footer { padding: 24px 0; font-size: 12px; }
+.app-shell .skip-link { position: absolute; top: -100px; }
+.app-shell .skip-link:focus { position: static; }
+@media (max-width: 850px) {
+  .app-shell .intelligence-workspace, .app-shell .results-grid { grid-template-columns: 1fr; }
+  .app-shell .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .topbar nav, .app-shell .header-status { display: none; }
+  .app-shell .workspace-heading { flex-wrap: wrap; }
+  .app-shell .marine-map { height: 520px; }
+}

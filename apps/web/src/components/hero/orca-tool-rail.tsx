@@ -10,6 +10,12 @@ const TOOLS = [
   { label: 'Route', icon: Route },
   { label: 'Layers', icon: Layers3 },
 ];
+const DATA_DESTINATIONS: Record<string, string> = {
+  'Fishing Zones': '/dashboard#marine-map',
+  Conditions: '/dashboard#marine-data',
+  Alerts: '/dashboard#marine-alerts',
+  Layers: '/dashboard#marine-map',
+};
 
 export function OrcaToolRail() {
   const [activeTool, setActiveTool] = useState('Fishing Zones');
@@ -21,7 +27,11 @@ export function OrcaToolRail() {
           key={label}
           type="button"
           aria-pressed={activeTool === label}
-          onClick={() => setActiveTool(label)}
+          onClick={() => {
+            setActiveTool(label);
+            const destination = DATA_DESTINATIONS[label];
+            if (destination) window.location.assign(destination);
+          }}
         >
           <Icon size={19} strokeWidth={1.45} aria-hidden="true" />
           <span>{label}</span>

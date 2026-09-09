@@ -14,7 +14,7 @@
     "@orca/engine": "*",
     "@orca/geo": "*",
     "lucide-react": "^0.468.0",
-    "maplibre-gl": "^5.0.0",
+    "maplibre-gl": "^6.8.0",
     "next": "^16.0.0",
     "ogl": "^1.0.11",
     "react": "^19.2.0",

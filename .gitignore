@@ -8,3 +8,12 @@ coverage/
 output/
 .playwright-cli/
 *.log
+.venv/
+.npm-cache/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/imports/
+*.db
+*.sqlite
+*.sqlite3

@@ -7,7 +7,7 @@ export function OrcaNav() {
         {NAV_ITEMS.map((item, index) => (
           <a
             key={item}
-            href={item === 'Home' ? '#home' : '#ask-orca'}
+            href={item === 'Home' ? '#home' : item === 'Data Sources' ? '/dashboard' : '#ask-orca'}
             aria-current={index === 0 ? 'page' : undefined}
           >
             {item}

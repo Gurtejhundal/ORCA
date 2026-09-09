@@ -1,5 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
+import type { FeatureCollection } from 'geojson';
+import { MarineData } from './marine-data';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type {
@@ -30,6 +32,32 @@ import {
 } from 'lucide-react';
 import { EvidencePanel } from './evidence-panel';
 import { localDate, localTime, reasonLabel } from './format';
+import { DataStatusBadge } from './data-status-badge';
+import { VoiceChatControl, AudioPlayer } from './voice-chat-control';
+import { PFZRecommendationCard } from './pfz-recommendation-card';
+import { SafetyCard } from './safety-card';
+import { RouteComparisonCard } from './route-comparison-card';
+import { SimulationWidget } from './simulation-widget';
+import { GeofenceAlertBanner } from './geofence-alert';
+import { MapLegend } from './map-legend';
+import {
+  marineApi,
+  type RankedPFZCandidate,
+  type RiskAssessment,
+  type RouteComparison,
+  type GeofenceStatus,
+  type Location,
+  type MapActionPayload,
+} from '@/services/marine-api';
+
+const PRESET_LOCATIONS: { name: string; lat: number; lon: number }[] = [
+  { name: 'Nagapattinam', lat: 10.767, lon: 79.872 },
+  { name: 'Chennai', lat: 13.0827, lon: 80.2707 },
+  { name: 'Tuticorin', lat: 8.7642, lon: 78.1348 },
+  { name: 'Kochi', lat: 9.9312, lon: 76.2673 },
+  { name: 'Veraval', lat: 20.9008, lon: 70.3664 },
+  { name: 'Visakhapatnam', lat: 17.6868, lon: 83.2185 },
+];
 
 const MarineMap = dynamic(
   () => import('./marine-map').then((module) => module.MarineMap),
@@ -80,6 +108,20 @@ export function Dashboard({
   const [notice, setNotice] = useState('');
   const [lastQuery, setLastQuery] = useState(DEMO_QUERY);
   const controller = useRef<AbortController | null>(null);
+
+  // Part 4 State
+  const [currentLocation, setCurrentLocation] = useState<Location>({ lat: 10.767, lon: 79.872 });
+  const [gpsActive, setGpsActive] = useState(false);
+  const [recommendedPFZ, setRecommendedPFZ] = useState<RankedPFZCandidate | null>(null);
+  const [allPFZCandidates, setAllPFZCandidates] = useState<RankedPFZCandidate[]>([]);
+  const [safetyRisk, setSafetyRisk] = useState<RiskAssessment | null>(null);
+  const [routeComparison, setRouteComparison] = useState<RouteComparison | null>(null);
+  const [geofenceStatus, setGeofenceStatus] = useState<GeofenceStatus | null>(null);
+  const [marineLayer, setMarineLayer] = useState<FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const [backendAnswer, setBackendAnswer] = useState('');
+  const sessionId = useRef<string | undefined>(undefined);
+  const [mapActions, setMapActions] = useState<MapActionPayload[]>([]);
+
   const result = decision.recommendation;
   const zone = decision.zones.find((z) => z.id === result.candidateZoneId);
   const route = decision.routes.find((r) => r.id === result.routeId);
@@ -88,18 +130,63 @@ export function Dashboard({
     result.status === 'RECOMMENDED' || result.status === 'CAUTION';
   const elapsed = decision.agentTrace.reduce((sum, t) => sum + t.durationMs, 0);
 
+  // Location selector handler
+  function handlePresetLocation(preset: { name: string; lat: number; lon: number }) {
+    setCurrentLocation({ lat: preset.lat, lon: preset.lon });
+    const newMsg = `I am departing from ${preset.name}. Where should I fish and what is the safest route?`;
+    setMessage(newMsg);
+    void submit(newMsg, scenario, false, { lat: preset.lat, lon: preset.lon });
+  }
+
+  // Live GPS tracking
+  function toggleGps() {
+    if (!navigator.geolocation) {
+      setNotice('Geolocation is not supported by your browser.');
+      return;
+    }
+    if (gpsActive) {
+      setGpsActive(false);
+      return;
+    }
+    setGpsActive(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userLoc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setCurrentLocation(userLoc);
+        const msg = `What is the marine risk and nearest safe fishing zone from my current GPS position (${userLoc.lat.toFixed(3)}, ${userLoc.lon.toFixed(3)})?`;
+        setMessage(msg);
+        void submit(msg, scenario, false, userLoc);
+      },
+      (err) => {
+        setGpsActive(false);
+        setNotice(`GPS error: ${err.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
   async function submit(
     query = message,
     nextScenario = scenario,
     reset = false,
+    queryLocation = currentLocation,
   ) {
     if (!query.trim() || pending) return;
     controller.current?.abort();
     controller.current = new AbortController();
     setPending(true);
     setNotice('');
-    const timeout = setTimeout(() => controller.current?.abort(), 15000);
+    setBackendAnswer('');
+    setRecommendedPFZ(null);
+    setAllPFZCandidates([]);
+    setSafetyRisk(null);
+    setRouteComparison(null);
+    setGeofenceStatus(null);
+    setMapActions([]);
+    const timeout = setTimeout(() => controller.current?.abort(), 40000);
     try {
+      // Scenario controls explicitly run the labelled legacy replay.
+      if (reset) {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,6 +214,37 @@ export function Dashboard({
       } else {
         setNotice(body.answer);
         setContext(body.context);
+      }
+
+      }
+      // User queries go directly to the marine backend with persistent context.
+      try {
+        const agentChat = await marineApi.chat({
+          message: query,
+          location: queryLocation,
+          language: 'en',
+          session_id: reset ? undefined : sessionId.current,
+        }, controller.current.signal);
+        sessionId.current = agentChat.session_id;
+        setLastQuery(query);
+        setMessage(query);
+        setBackendAnswer(agentChat.answer);
+        setMapActions(agentChat.map_actions);
+        setNotice(agentChat.warnings.join(' · '));
+        setRecommendedPFZ(agentChat.data.ranked_pfz ?? null);
+        setAllPFZCandidates(agentChat.data.ranked_pfz_candidates ?? []);
+        if (agentChat.risk) {
+          setSafetyRisk(agentChat.risk.risk);
+        }
+        if (agentChat.route_comparison) {
+          setRouteComparison(agentChat.route_comparison);
+        }
+        if (agentChat.geofence) {
+          setGeofenceStatus(agentChat.geofence);
+        }
+      } catch (error) {
+        setBackendAnswer('Backend analysis unavailable. The scenario metrics below remain a demo replay.');
+        setNotice(error instanceof Error ? error.message : 'Backend analysis unavailable');
       }
     } catch (error) {
       setNotice(
@@ -168,18 +286,21 @@ export function Dashboard({
           <a href="#comparison">Route comparison</a>
           <a href="#evidence">Evidence</a>
         </nav>
-        <div className="header-status">
-          <span className="status-dot" />
-          <span>
-            {pending
-              ? 'Retrieving demo evidence'
-              : decision.agentTrace.some((agent) => agent.status === 'FAILED')
-                ? 'Demo source unavailable'
-                : 'Demo providers ready'}
-          </span>
-          <span className="language">
-            <Globe2 size={14} /> EN
-          </span>
+        <div className="flex items-center gap-3">
+          <DataStatusBadge />
+          <div className="header-status">
+            <span className="status-dot" />
+            <span>
+              {pending
+                ? 'Retrieving demo evidence'
+                : decision.agentTrace.some((agent) => agent.status === 'FAILED')
+                  ? 'Demo source unavailable'
+                  : 'Demo providers ready'}
+            </span>
+            <span className="language">
+              <Globe2 size={14} /> EN
+            </span>
+          </div>
         </div>
       </header>
       <div className="replay-banner">
@@ -234,6 +355,42 @@ export function Dashboard({
               <span className="eyebrow">TRIP PLANNER</span>
               <span className="small-tag">01 / NAGAPATTINAM</span>
             </div>
+            {/* Preset Coastal Ports & GPS Selector */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-2 text-xs">
+              <span className="text-[10px] uppercase font-bold text-white/40 tracking-wider">
+                Port:
+              </span>
+              {PRESET_LOCATIONS.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => handlePresetLocation(p)}
+                  disabled={pending}
+                  className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
+                    currentLocation.lat === p.lat && currentLocation.lon === p.lon
+                      ? 'bg-sky-500 text-white font-semibold'
+                      : 'bg-white/5 hover:bg-white/10 text-white/70'
+                  }`}
+                >
+                  {p.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={toggleGps}
+                disabled={pending}
+                className={`px-2 py-0.5 rounded text-[11px] transition-colors flex items-center gap-1 ${
+                  gpsActive
+                    ? 'bg-emerald-500 text-white font-semibold animate-pulse'
+                    : 'bg-white/5 hover:bg-white/10 text-white/70'
+                }`}
+                title="Detect live GPS position"
+              >
+                <MapPin size={11} />
+                {gpsActive ? 'GPS Active' : 'Live GPS'}
+              </button>
+            </div>
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -241,7 +398,16 @@ export function Dashboard({
               }}
               className="query-form"
             >
-              <label htmlFor="query">Where are we heading?</label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="query">Where are we heading?</label>
+                <VoiceChatControl
+                  onTranscript={(text) => {
+                    setMessage(text);
+                    void submit(text);
+                  }}
+                  disabled={pending}
+                />
+              </div>
               <textarea
                 id="query"
                 maxLength={2000}
@@ -288,7 +454,7 @@ export function Dashboard({
               <div role="alert" className="request-notice">
                 {notice}
                 <span>
-                  The displayed analysis is still the previous result.
+                  Marine data warnings apply to the backend answer. Scenario metrics remain a labelled replay.
                 </span>
               </div>
             )}
@@ -347,8 +513,14 @@ export function Dashboard({
               Actual service calls · Deterministic rules
             </div>
           </aside>
-          <div className="map-workspace">
-            <MarineMap decision={decision} onSelectZone={setSelectedZone} />
+          <div className="map-workspace relative">
+            {geofenceStatus && (
+              <div className="absolute top-4 left-4 right-4 z-20">
+                <GeofenceAlertBanner status={geofenceStatus} />
+              </div>
+            )}
+            <MarineMap decision={decision} onSelectZone={setSelectedZone} currentLocation={currentLocation} onLocation={setCurrentLocation} marineLayer={marineLayer} mapActions={mapActions} />
+            <MapLegend />
             <div
               className={
                 'map-recommendation ' + (!isSuccess ? 'no-recommendation' : '')
@@ -448,9 +620,36 @@ export function Dashboard({
                 {result.status.replaceAll('_', ' ')}
               </span>
             </div>
-            <p className="answer" aria-live="polite">
-              {decision.answer}
-            </p>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="answer font-medium" aria-live="polite">
+                {backendAnswer || decision.answer}
+              </p>
+              <AudioPlayer text={backendAnswer || decision.answer} language="en" />
+            </div>
+
+            {/* Part 4 Deterministic Safety Assessment Card */}
+            {safetyRisk && (
+              <div className="my-3">
+                <SafetyCard risk={safetyRisk} locationName={decision.plan.origin.name} />
+              </div>
+            )}
+
+            {/* Part 4 Safe PFZ Recommendation Card */}
+            {recommendedPFZ && (
+              <div className="my-3">
+                <PFZRecommendationCard
+                  candidate={recommendedPFZ}
+                  allCandidates={allPFZCandidates}
+                  onSelectCandidate={(c) => {
+                    setRecommendedPFZ(c);
+                  }}
+                  onShowSafeRoute={(c) => {
+                    void submit(`What is the safest navigation route to ${c.name}?`);
+                  }}
+                />
+              </div>
+            )}
+
             <ul className="decision-reasons">
               {decision.reasons.map((reason) => (
                 <li key={reason}>
@@ -592,6 +791,32 @@ export function Dashboard({
             </p>
           </section>
         </div>
+        {/* Part 4 Deterministic Route Comparison Section */}
+        {routeComparison && (
+          <section className="my-6">
+            <RouteComparisonCard
+              comparison={routeComparison}
+              onSelectRoute={(selRoute) => {
+                void submit(`Inspect route with distance ${selRoute.total_distance_km.toFixed(1)} km`);
+              }}
+            />
+          </section>
+        )}
+
+        {/* Part 4 Vessel Simulation & Dynamic Reroute Section */}
+        <MarineData location={currentLocation} onLocation={setCurrentLocation} onLayer={setMarineLayer} />
+        <section className="my-6">
+          <SimulationWidget
+            origin={currentLocation}
+            onVesselMove={(pos, heading) => {
+              setCurrentLocation(pos);
+            }}
+            onRouteRecalculated={(newRoute) => {
+              void submit(`Dynamic hazard encountered! Route recalculated to avoid hazard.`);
+            }}
+          />
+        </section>
+
         <section className="routes-section">
           <div className="section-heading">
             <div>
@@ -682,15 +907,26 @@ export function Dashboard({
           </div>
         </section>
         <EvidencePanel decision={decision} zoneId={selectedZone} />
+
+        {/* Safety Disclaimer */}
+        <div className="my-6 p-4 rounded-xl border border-white/10 bg-black/40 text-center text-xs text-white/60 space-y-1">
+          <p className="font-semibold text-white/80">
+            Official Marine Safety & Decision-Support Notice
+          </p>
+          <p>
+            SamudraAI / ORCA is an intelligent decision-support prototype. Official INCOIS / IMD marine advisories, port alerts, and maritime authority instructions take absolute precedence. Not intended as sole means of nautical navigation.
+          </p>
+        </div>
+
         <footer>
           <span>
             <Anchor size={14} /> ORCA · SIH 26176
           </span>
           <span>
-            Demonstration system · No live feeds or trained prediction model
+            Route analysis is a synthetic replay · Marine data mode is labelled separately
           </span>
-          <a href="/api/health" target="_blank" rel="noreferrer">
-            Provider health
+          <a href="/api/v1/system/status" target="_blank" rel="noreferrer">
+            Provider health & freshness
             <ArrowUpRight size={13} />
           </a>
         </footer>
