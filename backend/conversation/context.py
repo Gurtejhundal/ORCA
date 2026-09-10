@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from pydantic import BaseModel, Field
 
@@ -31,4 +31,4 @@ class ConversationContext(BaseModel):
     requested_time: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     turn_count: int = 0
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -69,3 +69,149 @@
   .app-shell .workspace-heading { flex-wrap: wrap; }
   .app-shell .marine-map { height: 520px; }
 }
+
+.app-shell--embedded {
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.app-shell--embedded > .skip-link:focus {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 50;
+}
+
+.app-shell--embedded > .topbar,
+.app-shell--embedded > .replay-banner,
+.app-shell--embedded main > :not(.workspace-heading):not(.intelligence-workspace) {
+  display: none;
+}
+
+.app-shell--embedded main {
+  display: grid;
+  grid-template-rows: 68px minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  overflow: hidden;
+}
+
+.app-shell--embedded .workspace-heading {
+  min-width: 0;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(225, 247, 242, .14);
+  background: rgba(5, 32, 42, .7);
+}
+
+.app-shell--embedded .workspace-heading .eyebrow {
+  font-size: 9px;
+}
+
+.app-shell--embedded .workspace-heading h1 {
+  margin: 3px 0 0;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.app-shell--embedded .scenario-control {
+  gap: 9px;
+  font-size: 11px;
+}
+
+.app-shell--embedded .scenario-control select,
+.app-shell--embedded .scenario-control button {
+  min-height: 40px;
+}
+
+.app-shell--embedded .intelligence-workspace {
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell--embedded .conversation-panel {
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+  border: 0;
+  border-right: 1px solid rgba(225, 247, 242, .14);
+  border-radius: 0;
+  background: rgba(5, 32, 42, .88);
+  scrollbar-color: rgba(205, 235, 229, .2) transparent;
+}
+
+.app-shell--embedded .conversation-panel button,
+.app-shell--embedded .conversation-panel textarea,
+.app-shell--embedded .scenario-control select,
+.app-shell--embedded .scenario-control button {
+  border-color: rgba(225, 247, 242, .18);
+  background: rgba(12, 52, 65, .82);
+}
+
+.app-shell--embedded .conversation-panel textarea:focus-visible,
+.app-shell--embedded .conversation-panel button:focus-visible,
+.app-shell--embedded .scenario-control select:focus-visible,
+.app-shell--embedded .scenario-control button:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.app-shell--embedded .map-workspace {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #9bcbd4;
+}
+
+.app-shell--embedded .marine-map {
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.app-shell--embedded .map-recommendation {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .app-shell--embedded {
+    overflow: auto;
+  }
+
+  .app-shell--embedded main {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  .app-shell--embedded .workspace-heading {
+    position: static;
+    min-height: 78px;
+    flex-wrap: wrap;
+  }
+
+  .app-shell--embedded .intelligence-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    overflow: visible;
+  }
+
+  .app-shell--embedded .conversation-panel {
+    max-height: none;
+    overflow-y: visible;
+    border-right: 0;
+    border-bottom: 1px solid rgba(225, 247, 242, .14);
+  }
+
+  .app-shell--embedded .map-workspace,
+  .app-shell--embedded .marine-map {
+    height: 520px;
+    min-height: 520px;
+  }
+}

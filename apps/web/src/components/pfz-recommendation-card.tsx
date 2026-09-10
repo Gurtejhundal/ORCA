@@ -1,5 +1,5 @@
 'use client';
-import { Check, AlertTriangle, ShieldCheck, Navigation, ChevronRight, X } from 'lucide-react';
+import { Check, ShieldCheck, Navigation, ChevronRight, X } from 'lucide-react';
 import type { RankedPFZCandidate } from '@/services/marine-api';
 
 interface PFZRecommendationCardProps {

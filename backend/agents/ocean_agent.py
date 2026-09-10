@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from backend.agents.base import BaseAgent
 from backend.agents.schemas import AgentInput, AgentOutput, EvidenceItem
-from backend.schemas.marine import Location
+from backend.schemas.marine import Location, utcnow
 from backend.services.marine import MarineService
 
 
@@ -29,7 +29,7 @@ class OceanAgent(BaseAgent):
                         location={'lat': loc.lat, 'lon': loc.lon},
                         source=obs.source,
                         forecast_time=obs.forecast_time.isoformat() if obs.forecast_time else None,
-                        fetched_at=obs.fetched_at.isoformat() if obs.fetched_at else datetime.utcnow().isoformat(),
+                        fetched_at=obs.fetched_at.isoformat() if obs.fetched_at else utcnow().isoformat(),
                         freshness_minutes=getattr(obs, 'freshness_minutes', 0.0) or 0.0,
                         quality=obs.quality,
                         is_stale=getattr(obs, 'is_stale', False) or False,

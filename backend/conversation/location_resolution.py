@@ -52,8 +52,8 @@ COASTAL_LOCATIONS: dict[str, tuple[float, float, str]] = {
     'kozhikode': (11.258, 75.780, 'Kozhikode, Kerala'),
 
     # Tamil Nadu
-    'nagapattinam': (10.767, 79.843, 'Nagapattinam, Tamil Nadu'),
-    'नागापट्टिनम': (10.767, 79.843, 'Nagapattinam, Tamil Nadu'),
+    'nagapattinam': (10.767, 79.872, 'Nagapattinam departure point, Tamil Nadu'),
+    'नागापट्टिनम': (10.767, 79.872, 'Nagapattinam departure point, Tamil Nadu'),
     'chennai': (13.082, 80.270, 'Chennai, Tamil Nadu'),
     'चेन्नई': (13.082, 80.270, 'Chennai, Tamil Nadu'),
     'madras': (13.082, 80.270, 'Chennai, Tamil Nadu'),
@@ -138,7 +138,9 @@ def resolve_location(
     if explicit_location:
         if isinstance(explicit_location, dict):
             lat = explicit_location.get('lat')
-            lon = explicit_location.get('lon') or explicit_location.get('lng')
+            lon = explicit_location.get('lon')
+            if lon is None:
+                lon = explicit_location.get('lng')
         else:
             lat = explicit_location.lat
             lon = explicit_location.lon

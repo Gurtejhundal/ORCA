@@ -30,7 +30,7 @@ RISK_CONFIG = {
             "high": 2.5,
             "extreme": 3.5,
             "rule_type": "prototype_operational_heuristic",
-            "source": "IMD/INCOIS sea state operational guidelines (rough sea >= 2.5m)",
+            "source": "ORCA prototype heuristic; requires validation for each vessel and operating area",
             "status": "active"
         },
         "wind_speed_ms": {
@@ -38,7 +38,7 @@ RISK_CONFIG = {
             "high": 12.5,
             "extreme": 17.0,
             "rule_type": "prototype_operational_heuristic",
-            "source": "Beaufort scale force 6+ (strong breeze/gale >= 11m/s)",
+            "source": "ORCA prototype heuristic; requires validation for each vessel and operating area",
             "status": "active"
         },
         "cyclone_warning": {

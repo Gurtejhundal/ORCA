@@ -22,12 +22,14 @@ class ExplanationAgent:
         language: str = 'en',
         location_name: str | None = None,
         recommended_pfz: dict | None = None,
+        analysis: dict | None = None,
     ) -> ExplanationOutput:
         from backend.llm.provider import MockLLMProvider
         if isinstance(self.llm, MockLLMProvider):
             return self._deterministic_fallback(query, intent, evidence,
                 warnings + ['Rule-based language fallback; no live LLM is configured.'],
-                language, location_name, sorted({ev.source for ev in evidence}))
+                language, location_name, sorted({ev.source for ev in evidence}),
+                recommended_pfz, analysis)
         # Build strict evidence context summary for prompt
         ev_summary = []
         sources = set()
@@ -52,6 +54,9 @@ VERIFIED EVIDENCE:
 DATA WARNINGS & GAPS:
 {warn_text}
 
+DETERMINISTIC SAFETY RESULT:
+{json.dumps(analysis or {}, ensure_ascii=False, default=str)}
+
 Instructions:
 Generate a structured explanation in language '{language}'.
 - State the direct answer clearly.
@@ -73,7 +78,8 @@ Generate a structured explanation in language '{language}'.
         except Exception as exc:
             logger.warning("llm_explanation_failed: %s; falling back to deterministic explanation", exc)
             return self._deterministic_fallback(
-                query, intent, evidence, warnings, language, location_name, list(sources)
+                query, intent, evidence, warnings, language, location_name,
+                list(sources), recommended_pfz, analysis
             )
 
     def _deterministic_fallback(
@@ -85,6 +91,8 @@ Generate a structured explanation in language '{language}'.
         language: str,
         location_name: str | None,
         sources: list[str],
+        recommended_pfz: dict | None = None,
+        analysis: dict | None = None,
     ) -> ExplanationOutput:
         loc_str = location_name or "इस क्षेत्र" if language == 'hi' else location_name or "this area"
         reasoning = []
@@ -95,13 +103,37 @@ Generate a structured explanation in language '{language}'.
         wind_ev = next((e for e in evidence if e.parameter == 'wind_speed' and e.value is not None), None)
         pfz_ev = next((e for e in evidence if 'pfz' in e.parameter.lower()), None)
 
+        direct = []
+        analysis = analysis or {}
+        risk = analysis.get('risk')
+        ranked = analysis.get('recommended_pfz') or recommended_pfz
+        route = analysis.get('route')
+        geofence = analysis.get('geofence')
+
         if language == 'hi':
+            if risk:
+                direct.append(
+                    f"प्रोटोटाइप सुरक्षा आकलन: {risk['level']} जोखिम, स्कोर {risk['score']}/100 और डेटा विश्वास {round(risk['confidence'] * 100)}%।"
+                )
+            if ranked:
+                direct.append(
+                    f"शीर्ष पात्र PFZ {ranked.get('name')} है, जो लगभग {ranked.get('distance_km')} किमी दूर है।"
+                )
+            elif intent in ('nearest_safe_pfz', 'nearest_pfz'):
+                direct.append('कोई PFZ सुरक्षा जांच पास नहीं कर सका, इसलिए कोई गंतव्य सुझाया नहीं गया है।')
+            if geofence:
+                if geofence.get('status') == 'SAFE':
+                    direct.append('रिकॉर्ड किए गए डेमो क्षेत्र में कोई समुद्री सीमा चेतावनी नहीं मिली।')
+                else:
+                    direct.append(f"समुद्री सीमा स्थिति: {geofence.get('status')}।")
             if wave_ev and wind_ev:
-                answer = f"{loc_str} में समुद्र की स्थिति का अवलोकन किया गया है। लहरों की ऊंचाई {wave_ev.value} {wave_ev.unit or 'm'} और हवा की गति {wind_ev.value} {wind_ev.unit or 'm/s'} दर्ज की गई है।"
+                observations.append(f"लहरों की ऊंचाई {wave_ev.value} {wave_ev.unit or 'm'} और हवा की गति {wind_ev.value} {wind_ev.unit or 'm/s'} है।")
             elif pfz_ev:
-                answer = f"{loc_str} के पास संभावित मत्स्य पालन क्षेत्र (PFZ) लगभग {pfz_ev.value} {pfz_ev.unit or 'km'} की दूरी पर स्थित है।"
+                observations.append(f"{loc_str} के पास PFZ लगभग {pfz_ev.value} {pfz_ev.unit or 'km'} दूर है।")
             else:
-                answer = f"{loc_str} के लिए समुद्री डेटा का सत्यापन कर लिया गया है।"
+                observations.append(f"{loc_str} के लिए पर्याप्त समुद्री माप उपलब्ध नहीं हैं।")
+
+            answer = ' '.join(direct + observations)
 
             if wave_ev:
                 reasoning.append(ReasoningItem(factor="तरंग ऊंचाई", finding=f"लहरों की ऊंचाई {wave_ev.value} {wave_ev.unit or 'm'} है।", evidence_ids=[wave_ev.id]))
@@ -109,18 +141,40 @@ Generate a structured explanation in language '{language}'.
                 reasoning.append(ReasoningItem(factor="पवन गति", finding=f"हवा की गति {wind_ev.value} {wind_ev.unit or 'm/s'} है।", evidence_ids=[wind_ev.id]))
             limitations = "पूर्वानुमान केवल सीमित समय के लिए मान्य है। बंदरगाह के संकेतों का पालन करें।"
         else:
+            if risk:
+                direct.append(
+                    f"Prototype safety assessment: {risk['level']} risk, score {risk['score']}/100, with {round(risk['confidence'] * 100)}% data confidence."
+                )
+            if ranked:
+                direct.append(
+                    f"The top eligible PFZ is {ranked.get('name')}, approximately {ranked.get('distance_km')} km away."
+                )
+            elif intent in ('nearest_safe_pfz', 'nearest_pfz'):
+                direct.append('No PFZ passed the safety gates, so no destination is recommended.')
+            if route:
+                direct.append(
+                    f"The demo route is {route.get('total_distance_km')} km with {route.get('overall_risk_level')} sampled risk."
+                )
+            if geofence:
+                if geofence.get('status') == 'SAFE':
+                    direct.append('No boundary warning was found within the recorded demo coverage.')
+                else:
+                    direct.append(f"Geofence status: {geofence.get('status')}.")
+
             if wave_ev and wind_ev:
-                answer = f"Conditions at {loc_str} have been evaluated. Significant wave height is {wave_ev.value} {wave_ev.unit or 'm'} and wind speed is {wind_ev.value} {wind_ev.unit or 'm/s'}."
+                observations.append(f"Significant wave height is {wave_ev.value} {wave_ev.unit or 'm'} and wind speed is {wind_ev.value} {wind_ev.unit or 'm/s'} at {loc_str}.")
             elif pfz_ev:
-                answer = f"A Potential Fishing Zone near {loc_str} is located approximately {pfz_ev.value} {pfz_ev.unit or 'km'} away."
+                observations.append(f"A PFZ near {loc_str} is approximately {pfz_ev.value} {pfz_ev.unit or 'km'} away.")
             elif wind_ev:
-                answer = f"Wind speed at {loc_str} is {wind_ev.value} {wind_ev.unit or ''}, from {wind_ev.source}. Review forecast time and data gaps before departure."
+                observations.append(f"Wind speed is {wind_ev.value} {wind_ev.unit or ''} at {loc_str}, from {wind_ev.source}.")
             elif wave_ev:
-                answer = f"Significant wave height at {loc_str} is {wave_ev.value} {wave_ev.unit or ''}, from {wave_ev.source}. Review forecast time and data gaps before departure."
+                observations.append(f"Significant wave height is {wave_ev.value} {wave_ev.unit or ''} at {loc_str}, from {wave_ev.source}.")
             elif not evidence:
-                answer = 'No marine measurements were retrieved. Provide a coastal location or coordinates and review the reported source errors.'
+                observations.append('No marine measurements were retrieved. Provide a coastal location or coordinates and review the reported source errors.')
             else:
-                answer = f"Available marine evidence for {loc_str} is shown below. A complete safety assessment is unavailable."
+                observations.append(f"Available marine evidence for {loc_str} is incomplete.")
+
+            answer = ' '.join(direct + observations)
 
             if wave_ev:
                 reasoning.append(ReasoningItem(factor="wave_height", finding=f"Wave height is {wave_ev.value} {wave_ev.unit or 'm'}.", evidence_ids=[wave_ev.id]))

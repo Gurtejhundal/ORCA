@@ -50,7 +50,7 @@ def evaluate_official_overrides(
                     OfficialOverride(
                         override=True,
                         type='RESTRICTED_MARITIME_ZONE',
-                        source=zone.get('source') or 'Official Maritime Administration / DG Shipping',
+                    source=zone.get('source') or 'Unattributed boundary record',
                         description=f"Location or route intersects restricted boundary: {zone.get('name') or zone.get('zone_name')}"
                     )
                 )

@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import uuid
 from typing import List, Tuple, Optional, Dict, Any
-from shapely.geometry import LineString, shape
+from shapely.geometry import LineString, Point, shape
 from backend.schemas.marine import Location
 from backend.geospatial.utils import haversine
 from backend.risk.service import MarineRiskService
@@ -52,6 +52,10 @@ class MarineRouteService:
         orig = (request.origin.lat, request.origin.lon)
         dest = (request.destination.lat, request.destination.lon)
 
+        coverage = shape(demo.read('region.json')['water'])
+        if any(not coverage.covers(Point(lon, lat)) for lat, lon in (orig, dest)):
+            raise SourceUnavailable('Marine routing', 'Origin and destination must be inside the recorded demo routing coverage')
+
         # Build navigation grid
         grid = NavigationGrid(origin=orig, destination=dest)
 
@@ -73,14 +77,14 @@ class MarineRouteService:
             vessel_type=request.vessel_type,
             wave_sample_fn=wave_fn,
             wind_sample_fn=wind_fn,
+            avoid_hazards=request.avoid_hazards,
         )
 
         if not raw_path:
             raise SourceUnavailable('Marine routing', 'No traversable route found within available navigable-water coverage')
 
         # Smooth path
-        avoid_haz = (request.optimization_preference == "safety_first" and request.avoid_hazards)
-        smoothed = smooth_path(grid, raw_path, avoid_hazards=avoid_haz)
+        smoothed = smooth_path(grid, raw_path, avoid_hazards=request.avoid_hazards)
 
         # Build segments and evaluate risks
         segments: List[RouteSegment] = []
@@ -228,14 +232,13 @@ class MarineRouteService:
         if detour_km > 0.5:
             explanation = (
                 f"Recommended Safe Route takes a {detour_km} km ({detour_pct}%) detour "
-                f"(+{int(extra_hours * 60)} mins) to completely bypass {haz_str}. "
-                f"This reduces navigation risk by {risk_reduction} points ({risk_pct}%), "
-                f"ensuring vessel stability under current sea conditions."
+                f"(+{int(extra_hours * 60)} mins) around {haz_str}. "
+                f"The prototype risk score is {risk_reduction} points ({risk_pct}%) lower for the sampled demo conditions."
             )
         else:
             explanation = (
-                "The direct path is already clear of active hazard zones and offers optimal safety. "
-                "No detour required."
+                "The demo routing model found no material benefit from a detour within its recorded coverage. "
+                "Check the route warnings and source freshness before using this result."
             )
 
         return RouteComparison(

@@ -2,14 +2,18 @@
 import asyncio
 import os
 import json
+import sys
 import httpx
 from backend.main import create_app
 from backend.core.config import Settings
+from backend.geospatial.utils import haversine
+from backend.schemas.marine import Location
 
 
 async def main():
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     print("==================================================")
-    print("SAMUDRA AI — PART 3 COMPREHENSIVE VERIFICATION")
+    print("ORCA — PART 3 COMPREHENSIVE VERIFICATION")
     print("==================================================")
 
     config = Settings(demo_mode=True)
@@ -32,6 +36,7 @@ async def main():
             assert r.status_code == 200, f"Safety analyze failed: {r.text}"
             safety_data = r.json()
             risk = safety_data["risk"]
+            assert risk['level'] != 'UNKNOWN'
             print(f"✓ Location: (10.767, 79.872) | Vessel: small_fishing_boat")
             print(f"  Risk Score: {risk['score']}/100 | Risk Level: {risk['level']} | Confidence: {risk['confidence']}")
             print(f"  Factors evaluated: {len(risk['factors'])}")
@@ -52,6 +57,7 @@ async def main():
             pfz_data = r.json()
             safe_cands = pfz_data["ranked_candidates"]
             excl_cands = pfz_data["excluded_candidates"]
+            assert safe_cands, 'Recorded replay must produce a safety-gated PFZ candidate'
             print(f"✓ Safe candidates: {len(safe_cands)} | Excluded candidates: {len(excl_cands)}")
             for c in safe_cands:
                 print(f"  #{c['rank']} {c['name']} (ID: {c['pfz_id']}): SuitabilityScore={c['ranking_score']}, Dist={c['distance_km']}km, RiskScore={c['risk_score']} ({c['risk_level']})")
@@ -120,14 +126,20 @@ async def main():
             sim_id = sim["simulation_id"]
             print(f"✓ Simulation started: {sim_id} | Initial Dist: {sim['remaining_distance_km']} km")
 
-            for step_idx in range(1, 4):
+            previous_position = None
+            for step_idx in range(1, 5):
                 r = await client.post(f"/api/v1/simulation/{sim_id}/step")
                 assert r.status_code == 200
                 step_res = r.json()
                 st = step_res["state"]
+                assert all('action' in action for action in step_res['map_actions'])
+                if step_idx == 4 and previous_position:
+                    moved_km = haversine(Location(**previous_position), Location(**st['current_position']))
+                    assert moved_km <= 2.3, f'Reroute caused an impossible {moved_km:.2f} km position jump'
+                previous_position = st['current_position']
                 print(f"  Step {step_idx}: Pos=({st['current_position']['lat']}, {st['current_position']['lon']}) | Prog={st['progress_percentage']}% | Rem={st['remaining_distance_km']}km | NeedsReroute={st['route_needs_recalculation']}")
                 for act in step_res["map_actions"]:
-                    print(f"   MapAction: {act['type']} - {act.get('title') or act.get('id')}")
+                    print(f"   MapAction: {act['action']} - {act.get('title') or act.get('id')}")
 
             r = await client.post(f"/api/v1/simulation/{sim_id}/stop")
             assert r.status_code == 200
@@ -136,17 +148,25 @@ async def main():
             # 8. Agent Chat Integration
             print("\n--- 8. Multi-Agent Conversational Integration ---")
             chat_queries = [
-                "Is it safe to go fishing near Nagapattinam right now?",
-                "Find me the nearest safe fishing zone",
-                "Are we heading near any restricted zone?"
+                ("Is it safe to go fishing near Nagapattinam tomorrow morning?", 'marine_safety'),
+                ("Where should I fish tomorrow morning near Nagapattinam?", 'nearest_safe_pfz'),
+                ("Are we heading near any restricted zone?", 'geofence_question'),
             ]
-            for q in chat_queries:
+            for q, expected_intent in chat_queries:
                 r = await client.post("/api/v1/chat", json={
                     "message": q,
                     "location": {"lat": 10.767, "lon": 79.872}
                 })
                 assert r.status_code == 200, f"Chat query failed: {r.text}"
                 chat_res = r.json()
+                assert chat_res['intent'] == expected_intent
+                if expected_intent == 'marine_safety':
+                    assert chat_res.get('risk') and chat_res['risk']['risk']['level'] != 'UNKNOWN'
+                elif expected_intent == 'nearest_safe_pfz':
+                    assert chat_res.get('recommended_pfz')
+                else:
+                    assert chat_res.get('geofence')
+                    assert 'boundary warning' in chat_res['answer'].lower()
                 print(f"✓ Query: '{q}'")
                 print(f"  Intent: {chat_res['intent']} | Confidence: {chat_res['confidence']}")
                 print(f"  Answer: {chat_res['answer'][:110]}...")

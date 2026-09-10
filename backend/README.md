@@ -1,4 +1,4 @@
-# SamudraAI / ORCA backend
+# ORCA backend
 
 > See [READINESS.md](READINESS.md) for the tested live-source matrix and current blockers. Live routing is disabled until a reviewed navigable-water grid and authoritative boundary coverage are integrated.
 
@@ -86,7 +86,7 @@ Tables: **marine_observations**, **pfz_zones**, **marine_zones**, **conversation
 
 ## APIs
 
-All routes are GET. Swagger describes coordinates, timestamps, filters, response models and errors.
+The API includes read endpoints and POST decision endpoints. Swagger describes coordinates, timestamps, filters, response models and errors.
 
 | Route | Parameters / result |
 | --- | --- |
@@ -155,7 +155,7 @@ The API is bound to localhost for development. Deployments need a reverse proxy 
 
 # Part 2 — Agentic AI, Multi-Agent Orchestration, Conversational Intelligence & Voice
 
-SamudraAI has been upgraded with a complete autonomous multi-agent reasoning framework, conversational intelligence supporting Indian regional languages, and a dual Bhashini / Browser-fallback voice pipeline.
+ORCA includes a multi-agent reasoning framework, deterministic English/Hindi fallback responses, regional-script detection, and a Bhashini/browser voice pipeline. Additional Indian-language generation and server voice require configured providers.
 
 ## Multi-Agent Architecture
 
@@ -219,7 +219,7 @@ BHASHINI ASR (POST /api/v1/voice/transcribe)
        ↓
 Detected Indian Language & Transcript
        ↓
-SamudraAI Multi-Agent Orchestrator
+ORCA Multi-Agent Orchestrator
        ↓
 Multilingual Grounded Answer
        ↓
@@ -232,21 +232,21 @@ Browser Audio Playback
 * **Fallback Provider:** Web Speech API (`SpeechRecognition` and `speechSynthesis`) for browser-side offline operation and testing.
 * **Fail-safe Design:** Voice failure never breaks normal text chat.
 
-## Google Maps Integration
+## MapLibre Integration
 
-Agents remain strictly map-provider independent, generating declarative actions that are dispatched to the frontend `GoogleMapController`:
+Agents remain map-provider independent, generating declarative actions that are translated into the existing MapLibre controller contract:
 
 ```text
 Agents
   ↓
 Generic map actions + GeoJSON
   ↓
-Google Maps frontend (services/google-maps.ts)
+MapLibre frontend (services/backend-map-actions.ts)
 ```
 
 Supported actions:
-* `SHOW_MARKERS`: Places PFZ or vessel coordinates as markers on Google Maps.
-* `FOCUS_LOCATION`: Centers and zooms Google Maps to target latitude and longitude.
+* `SHOW_MARKERS`: Places PFZ or vessel coordinates as markers.
+* `FOCUS_LOCATION`: Centers and zooms the map to target latitude and longitude.
 * `ADD_LAYER`: Adds GeoJSON FeatureCollections (PFZ contours, sampled layers).
 * `SHOW_HAZARD_ZONE`: Visualizes active hazard boundaries on Google Maps with caution styling.
 * `HIGHLIGHT_REGION`: Highlights oceanic interest areas.
@@ -347,7 +347,7 @@ Part 3 implements complete mathematical and deterministic spatial intelligence e
 
 ### 1. Data Freshness Classification & Policies
 
-SamudraAI strictly distinguishes dataset types and avoids claiming second-by-second realtime for periodic oceanographic models:
+ORCA strictly distinguishes dataset types and avoids claiming second-by-second realtime for periodic oceanographic models:
 
 | Dataset | Data Type | Source | Current (<) | Aging | Stale (>) | Re-fetch / Update Cycle |
 |---|---|---|---|---|---|---|

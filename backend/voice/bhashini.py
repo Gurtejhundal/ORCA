@@ -77,10 +77,12 @@ class BhashiniVoiceProvider(VoiceProvider):
                 if task.get("taskType") == "asr":
                     output = task.get("output", [])
                     if output and "source" in output[0]:
+                        raw_confidence = output[0].get("confidence", 0.0)
+                        confidence = float(raw_confidence) if isinstance(raw_confidence, (int, float)) else 0.0
                         return TranscriptionResult(
                             text=output[0]["source"],
                             language=source_lang,
-                            confidence=0.92,
+                            confidence=max(0.0, min(1.0, confidence)),
                             provider=self.name,
                         )
 

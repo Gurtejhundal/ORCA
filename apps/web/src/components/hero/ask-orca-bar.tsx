@@ -1,20 +1,41 @@
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { ArrowUp, Loader2, Mic, Volume2, Waves } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { marineApi, type ChatResponsePayload } from '@/services/marine-api';
+import { ArrowUp, Loader2, Mic, Waves } from 'lucide-react';
+import { marineApi } from '@/services/marine-api';
 
-const GlassSurface = dynamic(() => import('@/components/ui/glass-surface'), {
-  ssr: false,
-});
+export type AppLanguage = 'en' | 'hi';
 
-const SUGGESTIONS = [
-  'Where should I fish today?',
-  'कल सुबह वेरावल से समुद्र में जाना सुरक्षित रहेगा?',
-  'Find the nearest fishing zone',
-  'What is wave height near Kochi?',
-];
+const COPY = {
+  en: {
+    placeholder: 'Ask where to fish, whether to sail, or open the map…',
+    label: 'Ask ORCA about the sea',
+    startVoice: 'Start voice input',
+    stopVoice: 'Stop voice input',
+    send: 'Send question',
+    suggestionsLabel: 'Suggested questions',
+    dismiss: 'Dismiss',
+    listening: 'Listening…',
+    transcribing: 'Transcribing speech…',
+    unsupported: 'Voice input is not supported by this browser.',
+    voiceError: 'Voice input could not start. Check microphone access and try again.',
+    suggestions: ['Where should I fish tomorrow?', 'Is it safe to sail?', 'What can ORCA do?', 'Open the marine map'],
+  },
+  hi: {
+    placeholder: 'मछली पकड़ने, यात्रा सुरक्षा या मानचित्र के बारे में पूछें…',
+    label: 'समुद्र के बारे में ORCA से पूछें',
+    startVoice: 'आवाज़ से पूछें',
+    stopVoice: 'आवाज़ सुनना बंद करें',
+    send: 'सवाल भेजें',
+    suggestionsLabel: 'सुझाए गए सवाल',
+    dismiss: 'बंद करें',
+    listening: 'सुन रहा है…',
+    transcribing: 'आवाज़ को लिखा जा रहा है…',
+    unsupported: 'इस ब्राउज़र में आवाज़ इनपुट उपलब्ध नहीं है।',
+    voiceError: 'माइक्रोफ़ोन चालू नहीं हुआ। अनुमति जाँचें और फिर कोशिश करें।',
+    suggestions: ['कल कहाँ मछली पकड़ूँ?', 'क्या समुद्र में जाना सुरक्षित है?', 'ORCA क्या कर सकता है?', 'समुद्री मानचित्र खोलो'],
+  },
+} as const;
 
 type SpeechResultEvent = {
   results: {
@@ -37,17 +58,23 @@ type SpeechRecognitionInstance = {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
-export function AskOrcaBar() {
+export function AskOrcaBar({
+  language,
+  onSubmitQuery,
+}: {
+  language: AppLanguage;
+  onSubmitQuery: (query: string) => Promise<void>;
+}) {
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState('');
   const [voiceStatus, setVoiceStatus] = useState<string>('');
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [chatResult, setChatResult] = useState<ChatResponsePayload | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const copy = COPY[language];
 
   useEffect(
     () => () => {
@@ -59,50 +86,15 @@ export function AskOrcaBar() {
     [],
   );
 
-  const speakText = async (text: string, language = 'hi') => {
-    try {
-      const tts = await marineApi.speakText(text, language);
-      if (tts.audio_base64) {
-        const audio = new Audio(`data:audio/wav;base64,${tts.audio_base64}`);
-        audio.play();
-        return;
-      }
-    } catch {
-      // Fallback to browser Web Speech synthesis
-    }
-
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
   const executeQuery = async (textToQuery: string) => {
     if (!textToQuery.trim() || loading) return;
     setLoading(true);
     setNotice('');
-    setVoiceStatus('Consulting SamudraAI Agents…');
-
     try {
-      const resp = await marineApi.chat({
-        message: textToQuery,
-      });
-      setChatResult(resp);
-      setNotice(resp.answer);
-      setVoiceStatus('');
-
-      // Autoplay voice response
-      void speakText(resp.answer, resp.language);
-    } catch (err) {
-      setNotice(
-        err instanceof Error
-          ? `AI Orchestrator: ${err.message}`
-          : 'Failed to communicate with marine intelligence agent.',
-      );
-      setVoiceStatus('');
+      setQuery('');
+      await onSubmitQuery(textToQuery.trim());
     } finally {
+      setVoiceStatus('');
       setLoading(false);
     }
   };
@@ -125,7 +117,7 @@ export function AskOrcaBar() {
 
   const startAudioRecording = async () => {
     audioChunksRef.current = [];
-    setVoiceStatus('Listening (Bhashini/Voice)…');
+    setVoiceStatus(copy.listening);
     setNotice('');
 
     try {
@@ -141,9 +133,9 @@ export function AskOrcaBar() {
         stream.getTracks().forEach((t) => t.stop());
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (audioBlob.size > 1000) {
-          setVoiceStatus('Transcribing speech…');
+          setVoiceStatus(copy.transcribing);
           try {
-            const tr = await marineApi.transcribeAudio(audioBlob);
+            const tr = await marineApi.transcribeAudio(audioBlob, language);
             if (tr.text) {
               setQuery(tr.text);
               setVoiceStatus('');
@@ -173,7 +165,7 @@ export function AskOrcaBar() {
       speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 
     if (!Recognition) {
-      setNotice('Voice input is not supported by this browser.');
+      setNotice(copy.unsupported);
       setVoiceStatus('');
       return;
     }
@@ -181,7 +173,7 @@ export function AskOrcaBar() {
     const recognition = new Recognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'hi-IN';
+    recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
     recognition.onresult = (event) => {
       const text = event.results[0][0].transcript;
       setQuery(text);
@@ -196,12 +188,12 @@ export function AskOrcaBar() {
     recognition.onerror = () => {
       setListening(false);
       setVoiceStatus('');
-      setNotice('Voice input could not start. Check microphone access and try again.');
+      setNotice(copy.voiceError);
     };
 
     recognitionRef.current = recognition;
     setListening(true);
-    setVoiceStatus('Listening via browser speech…');
+    setVoiceStatus(copy.listening);
     recognition.start();
   };
 
@@ -215,63 +207,22 @@ export function AskOrcaBar() {
   };
 
   return (
-    <section className="ask-orca" id="ask-orca" aria-label="Ask ORCA">
+    <section className="ask-orca" id="ask-orca" aria-label={copy.label}>
       {voiceStatus && (
         <div className="ask-orca__notice" role="status" style={{ opacity: 0.9 }}>
           {voiceStatus}
         </div>
       )}
 
-      {notice ? (
-        <div className="ask-orca__notice" role="status">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', textAlign: 'left' }}>
-            <span>{notice}</span>
-            {chatResult && (
-              <span style={{ fontSize: '0.8rem', opacity: 0.85 }}>
-                Confidence: {Math.round(chatResult.confidence * 100)}% · Intent: {chatResult.intent} · Sources: {chatResult.sources.join(', ')}
-              </span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => void speakText(notice, chatResult?.language || 'hi')}
-              title="Speak answer"
-              aria-label="Speak response"
-            >
-              <Volume2 size={16} />
-            </button>
-            <button type="button" onClick={() => setNotice('')}>
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {notice ? <div className="ask-orca__notice" role="alert"><span>{notice}</span><button type="button" onClick={() => setNotice('')}>{copy.dismiss}</button></div> : null}
 
-      <GlassSurface
-        width="100%"
-        height="100%"
-        borderRadius={25}
-        borderWidth={0.065}
-        brightness={58}
-        opacity={0.76}
-        blur={7}
-        displace={0.45}
-        backgroundOpacity={0.16}
-        saturation={1.24}
-        distortionScale={-105}
-        redOffset={0}
-        greenOffset={2}
-        blueOffset={4}
-        mixBlendMode="soft-light"
-        className="ask-orca__glass"
-      >
+      <div className="ask-orca__surface">
         <form className="ask-orca__form" onSubmit={submitQuery}>
           <span className="ask-orca__mark" aria-hidden="true">
             {loading ? <Loader2 size={19} className="animate-spin" /> : <Waves size={19} strokeWidth={1.65} />}
           </span>
           <label className="sr-only" htmlFor="orca-query">
-            Ask ORCA about the sea
+            {copy.label}
           </label>
           <input
             ref={inputRef}
@@ -282,27 +233,27 @@ export function AskOrcaBar() {
               setQuery(event.target.value);
               setNotice('');
             }}
-            placeholder="Ask SamudraAI in Hindi or English (e.g. कल सुबह वेरावल से समुद्र में जाना सुरक्षित रहेगा?)..."
+            placeholder={copy.placeholder}
             autoComplete="off"
           />
           <button
             className="ask-orca__voice"
             type="button"
-            aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+            aria-label={listening ? copy.stopVoice : copy.startVoice}
             aria-pressed={listening}
             style={listening ? { color: '#ff6b6b', animation: 'pulse 1.5s infinite' } : {}}
             onClick={toggleVoice}
           >
             <Mic size={18} aria-hidden="true" />
           </button>
-          <button className="ask-orca__send" type="submit" disabled={loading} aria-label="Send question">
+          <button className="ask-orca__send" type="submit" disabled={loading} aria-label={copy.send}>
             <ArrowUp size={18} aria-hidden="true" />
           </button>
         </form>
-      </GlassSurface>
+      </div>
 
-      <div className="ask-orca__suggestions" aria-label="Suggested questions">
-        {SUGGESTIONS.map((suggestion) => (
+      <div className="ask-orca__suggestions" aria-label={copy.suggestionsLabel}>
+        {copy.suggestions.map((suggestion) => (
           <button
             key={suggestion}
             type="button"

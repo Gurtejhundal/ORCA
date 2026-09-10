@@ -2,7 +2,7 @@ from typing import Any
 from shapely.geometry import shape, Point
 from backend.agents.base import BaseAgent
 from backend.agents.schemas import AgentInput, AgentOutput, EvidenceItem
-from backend.schemas.marine import Location
+from backend.schemas.marine import Location, utcnow
 from backend.services.marine import MarineService
 
 
@@ -53,7 +53,7 @@ class GeospatialAgent(BaseAgent):
                                 unit='zone_overlap',
                                 location={'lat': loc.lat, 'lon': loc.lon} if loc else {'lat': 0.0, 'lon': 0.0},
                                 source='PostGIS/Shapely Spatial Analysis',
-                                fetched_at=__import__('datetime').datetime.utcnow().isoformat(),
+                                fetched_at=utcnow().isoformat(),
                                 quality='derived_geospatial',
                             )
                         )

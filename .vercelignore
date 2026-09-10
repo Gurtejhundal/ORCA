@@ -1,0 +1,5 @@
+.playwright-cli/
+output/
+.venv/
+**/__pycache__/
+**/.pytest_cache/

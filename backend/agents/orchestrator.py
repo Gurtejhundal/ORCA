@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import uuid
 from datetime import datetime
 from typing import Any
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class MarineOrchestrator:
-    """Central multi-agent orchestration engine for SamudraAI."""
+    """Central multi-agent orchestration engine for ORCA."""
 
     def __init__(
         self,
@@ -94,7 +95,7 @@ class MarineOrchestrator:
             # Run ready tasks concurrently
             async def _run_single(task: AgentTask) -> tuple[AgentTask, AgentOutput]:
                 agent = self.registry.get(task.agent)
-                start_time = datetime.utcnow()
+                start_time = time.perf_counter()
                 if not agent:
                     out = AgentOutput(agent=task.agent, status='failed', errors=[f"Agent '{task.agent}' not in registry"])
                 else:
@@ -115,7 +116,7 @@ class MarineOrchestrator:
                     )
                     out = await agent.run(inp)
 
-                duration_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+                duration_ms = (time.perf_counter() - start_time) * 1000
                 tool_traces.append({
                     'task_id': task.id,
                     'agent': task.agent,
@@ -356,21 +357,11 @@ class MarineOrchestrator:
             task_outputs=task_outputs,
         )
 
-        # 11. Generate Explanation
-        explanation = await self.explanation_agent.explain(
-            query=query,
-            intent=intent_out.intent,
-            evidence=agg_evidence['all_evidence'],
-            warnings=list(set(all_warnings)),
-            language=detected_lang,
-            location_name=loc_ref.name if loc_ref else None,
-            recommended_pfz=context.selected_pfz.model_dump() if context.selected_pfz else None,
-        )
-
-        # 12. Provider-neutral map actions consumed by the MapLibre frontend
+        # 11. Provider-neutral map actions consumed by the MapLibre frontend
         map_actions = self.generate_map_actions(loc_ref, task_outputs)
 
-        # 13. Part 3 Deterministic Enhancements (Risk, Safe PFZ, Route, Geofence)
+        # 12. Deterministic enhancements run before explanation so the answer
+        # reflects the final safety gates, selected PFZ, route, and geofence state.
         risk_payload = None
         route_payload = None
         route_comp_payload = None
@@ -386,6 +377,7 @@ class MarineOrchestrator:
                     requested_time=resolved_dt,
                 )
                 risk_payload = risk_res.model_dump()
+                all_warnings.extend(risk_res.warnings)
 
             # Deterministic Safe PFZ Ranking
             if intent_out.intent in ('nearest_safe_pfz', 'nearest_pfz') and loc_ref:
@@ -415,7 +407,7 @@ class MarineOrchestrator:
                         source=top_cand.source,
                     )
                 else:
-                    explanation.warnings.append('No PFZ passed the safety gates; no safe destination is recommended.')
+                    all_warnings.append('No PFZ passed the safety gates; no safe destination is recommended.')
 
             # Deterministic Routing & Route Comparison
             if intent_out.intent in ('route_request', 'nearest_safe_pfz'):
@@ -442,6 +434,7 @@ class MarineOrchestrator:
                 comp = await self.route_service.compare_routes(r_req)
                 route_payload = comp.safe_route.model_dump()
                 route_comp_payload = comp.model_dump()
+                all_warnings.extend(comp.safe_route.warnings)
                 map_actions.append(
                     MapAction(
                         action='DRAW_ROUTE',
@@ -460,6 +453,7 @@ class MarineOrchestrator:
                 )
                 gf_res = await self.geofence_service.check_geofence(gf_req)
                 geofence_payload = gf_res.model_dump()
+                all_warnings.extend(w.message for w in gf_res.warnings)
                 if gf_res.warnings:
                     top_w = gf_res.warnings[0]
                     map_actions.append(
@@ -471,7 +465,36 @@ class MarineOrchestrator:
                     )
         except Exception as e:
             logger.warning("part3_orchestration_enhancement_error: %s", e)
-            explanation.warnings.append('Requested deterministic analysis is unavailable: ' + str(e))
+            all_warnings.append('Requested deterministic analysis is unavailable: ' + str(e))
+
+        if risk_payload:
+            confidence = min(confidence, risk_payload['confidence'])
+        if intent_out.intent in ('nearest_safe_pfz', 'nearest_pfz') and ranked_payload is None:
+            confidence = min(confidence, 0.1)
+
+        analysis_summary = {
+            'risk': risk_payload['risk'] if risk_payload else None,
+            'recommended_pfz': ranked_payload,
+            'route': ({key: route_payload[key] for key in (
+                'total_distance_km', 'estimated_duration_hours', 'overall_risk_level', 'warnings'
+            )} if route_payload else None),
+            'geofence': ({
+                'status': geofence_payload['status'],
+                'recommended_action': geofence_payload.get('recommended_action'),
+            } if geofence_payload else None),
+        }
+
+        # 13. Generate the user-facing explanation from the final deterministic result.
+        explanation = await self.explanation_agent.explain(
+            query=query,
+            intent=intent_out.intent,
+            evidence=agg_evidence['all_evidence'],
+            warnings=list(dict.fromkeys(all_warnings)),
+            language=detected_lang,
+            location_name=loc_ref.name if loc_ref else None,
+            recommended_pfz=context.selected_pfz.model_dump() if context.selected_pfz else None,
+            analysis=analysis_summary,
+        )
 
         # 14. Persist State & Agent Run
         context.last_intent = intent_out.intent

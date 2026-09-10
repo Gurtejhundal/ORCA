@@ -50,6 +50,11 @@ class GeofenceService:
 
     async def check_geofence(self, request: GeofenceCheckRequest) -> GeofenceStatus:
         loc = Location(lat=request.position.lat, lon=request.position.lon)
+        if self.marine_service and self.marine_service.settings.demo_mode:
+            coverage = shape(demo.read('region.json')['water'])
+            if not coverage.covers(Point(loc.lon, loc.lat)):
+                from backend.core.exceptions import SourceUnavailable
+                raise SourceUnavailable('Marine geofence', 'Location is outside the recorded demo boundary coverage; cannot declare SAFE')
         zones = await self._get_zones(loc)
         if not zones and self.marine_service and not self.marine_service.settings.demo_mode:
             from backend.core.exceptions import SourceUnavailable

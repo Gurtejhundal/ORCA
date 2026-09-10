@@ -1,5 +1,5 @@
 'use client';
-import { ShieldCheck, AlertTriangle, ArrowRight, Clock, Navigation, Check, GitCompare } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Check, GitCompare } from 'lucide-react';
 import type { RouteComparison, RouteResult } from '@/services/marine-api';
 
 interface RouteComparisonCardProps {

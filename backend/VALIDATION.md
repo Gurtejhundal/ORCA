@@ -1,34 +1,32 @@
-# Part 1 validation — 8 September 2026
+# Current validation — 9 September 2026
 
 ## Automated results
 
 | Check | Result |
 | --- | --- |
-| Backend pytest | **44 passed**, 0 failed, 0 skipped with configured PostGIS |
+| Backend pytest | **65 passed**, 0 failed, **2 skipped** because PostgreSQL/PostGIS is unavailable on this machine |
 | Existing frontend/engine Vitest | **65 passed**, 4 files |
 | TypeScript / Next route type generation | Passed |
 | ESLint | Passed |
 | Production Next.js build | Passed; landing, dashboard and existing API routes generated |
-| Alembic upgrade | Revision `298a26b067d1` applied |
-| Alembic schema check | No new upgrade operations detected |
-| PostgreSQL / PostGIS | Real Docker PostgreSQL 16 / PostGIS 3.5; both online in running FastAPI |
-| Demo HTTP smoke | All 16 route/layer requests returned 200 and valid JSON |
-| Live HTTP smoke | All 16 route/layer requests returned 200; missing sources explicitly reported |
-| GeoJSON | All eight API layer collections validated; geometry/coordinate checks passed |
+| Part 3 verification | Passed safety, PFZ ranking, hard hazard avoidance, route comparison, geofencing, rerouting, and flagship chat assertions |
+| PostgreSQL / PostGIS | Not exercised in this checkout; Docker is unavailable and the two integration tests skipped explicitly |
+| Provider reachability | INCOIS PFZ WFS/advisories/OSF and Open-Meteo marine/weather returned HTTP 200; INCOIS ERDDAP still failed local TLS verification |
+| Integrated browser | Hero chat and dashboard `/api/v1` proxy passed; MapLibre rendered with zero console warnings/errors |
+| Mobile layout | 390 × 844 viewport had no horizontal overflow |
 
-Two non-failing upstream deprecation warnings occur in Starlette's TestClient/httpx and AnyIO portal alias. Unit tests never access external sources. The database persistence test rolls back its temporary records; actual source verification persists real records.
+Two non-failing upstream deprecation warnings occur in Starlette's TestClient/httpx and AnyIO portal alias. Unit tests never access external sources. Database migration and persistence behavior still require a PostgreSQL/PostGIS environment.
 
 ## End-to-end browser checks
 
-The existing Next.js application and FastAPI were both started. `/dashboard` was checked in the Codex browser, including the actual MapLibre WebGL canvas (826 × 610 during inspection).
+The Next.js application and FastAPI demo backend were started together. The hero's flagship suggestion returned a safety-gated PFZ, risk result, route, and evidence through the real `/api/v1/chat` proxy. `/dashboard` rendered its MapLibre canvas and backend data at desktop and 390 px mobile widths.
 
 * Default location **10.767, 79.872** → FastAPI → recorded official INCOIS PFZ geometry → nearest **INCOIS PFZ 047, 2.49 km** → blue line on existing map. Validity, fetched time, source, stale flag and GeoJSON are returned; source reads **cached INCOIS PFZ sample**, mode **DEMO**.
 * Manual location **10.87, 80.1** updates nearest distance to **23.68 km** and synthetic wave fixture to **1.1 m**. Old values are cleared during loading. Map click also updates coordinates and refetches.
-* Live server mode verified through the same Next.js `/api/v1` proxy: **INCOIS OSF** wave values, **Open-Meteo Marine** SST/current values and **Open-Meteo Weather** wind values appeared with **LIVE** mode and per-value source labels.
-* Live PFZ date mismatch and unavailable warning feed are visibly explained; neither becomes fake successful data.
-* Fresh verification browser session logged **zero console errors**. Map canvas and blue recorded lines were visually inspected.
+* Current live-source verification covered endpoint reachability only; a full live stack was not run without PostgreSQL/PostGIS.
+* The fresh browser session logged **zero console warnings or errors**. Map canvas and blue recorded lines were visually inspected.
 * Geolocation is connected with a denial/error callback and manual coordinate/map alternatives. Actual device permission grant/denial was not automated; no claim of testing the OS permission dialog is made.
-* Original deterministic chat/route components remain a separately labelled synthetic replay. No new AI agents or routing algorithms were added.
+* The original dashboard scenario remains separately labelled as synthetic replay; new questions use the FastAPI multi-agent path.
 
 The original repository's unreachable dashboard had no matching CSS, so its map initially had zero height. Scoped dashboard styles and MapLibre's CSS restored dimensions/scrolling without changing the landing page's CSS, video or effects. A Next.js server/client constant-import error was fixed during browser verification. A real-server Windows event-loop incompatibility with psycopg was fixed using an explicit selector loop in `backend.run`, then database readiness was rechecked over HTTP.
 

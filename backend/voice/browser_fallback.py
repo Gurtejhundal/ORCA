@@ -2,10 +2,7 @@ from backend.voice.base import VoiceProvider, TranscriptionResult, SynthesisResu
 
 
 class BrowserFallbackVoiceProvider(VoiceProvider):
-    """Fallback voice provider that signals the browser to use Web Speech APIs
-
-    or returns a clean demonstration transcript in offline demo mode.
-    """
+    """Fallback voice provider that signals the browser to use Web Speech APIs."""
 
     name = 'browser_fallback'
 

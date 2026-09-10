@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 
@@ -11,9 +11,9 @@ class LatLon(BaseModel):
 class RouteRequest(BaseModel):
     origin: LatLon
     destination: LatLon
-    vessel_type: str = "small_fishing_boat"
-    optimization_preference: str = "safety_first"  # "safety_first", "balanced", "shortest"
-    vessel_speed_knots: Optional[float] = None
+    vessel_type: Literal["small_fishing_boat", "medium_fishing_vessel", "generic_vessel"] = "small_fishing_boat"
+    optimization_preference: Literal["safety_first", "balanced", "shortest"] = "safety_first"
+    vessel_speed_knots: Optional[float] = Field(None, gt=0, le=100)
     avoid_restricted: bool = True
     avoid_hazards: bool = True
 

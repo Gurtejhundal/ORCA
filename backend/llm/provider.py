@@ -101,6 +101,12 @@ class MockLLMProvider(LLMProvider):
             elif any(k in lower_prompt for k in ['route', 'रास्ता', 'मार्ग']):
                 intent = 'route_request'
                 required_caps = ['pfz', 'hazards', 'geospatial']
+            elif any(k in lower_prompt for k in [
+                'where should i fish', 'where can i fish', 'where to fish',
+                'कहाँ मछली', 'मछली कहाँ',
+            ]):
+                intent = 'nearest_safe_pfz'
+                required_caps = ['pfz', 'weather', 'ocean', 'hazards', 'geospatial']
             elif any(k in lower_prompt for k in ['safe', 'सुरक्षित', 'safety', 'जाना safe', 'risk']):
                 if any(k in lower_prompt for k in ['pfz', 'fishing zone', 'मछली']):
                     intent = 'nearest_safe_pfz'

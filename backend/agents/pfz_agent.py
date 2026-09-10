@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from backend.agents.base import BaseAgent
 from backend.agents.schemas import AgentInput, AgentOutput, EvidenceItem
-from backend.schemas.marine import Location
+from backend.schemas.marine import Location, utcnow
 from backend.services.marine import MarineService
 
 
@@ -58,7 +58,7 @@ class PFZAgent(BaseAgent):
                             location={'lat': loc.lat, 'lon': loc.lon},
                             source=z.source,
                             forecast_time=z.valid_from.isoformat() if z.valid_from else None,
-                            fetched_at=z.fetched_at.isoformat() if hasattr(z, 'fetched_at') and z.fetched_at else datetime.utcnow().isoformat(),
+                            fetched_at=z.fetched_at.isoformat() if hasattr(z, 'fetched_at') and z.fetched_at else utcnow().isoformat(),
                             freshness_minutes=getattr(z, 'freshness_minutes', 0.0) or 0.0,
                             quality='official',
                             is_stale=getattr(z, 'is_stale', False) or False,

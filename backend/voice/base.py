@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TranscriptionResult(BaseModel):
     text: str
     language: str = 'en'
-    confidence: float = 1.0
+    confidence: float = Field(0.0, ge=0.0, le=1.0)
     provider: str = 'bhashini'
 
 

@@ -6,7 +6,7 @@ T = TypeVar('T', bound=BaseModel)
 
 
 class LLMProvider(ABC):
-    """Abstract interface for LLM operations used by SamudraAI agents."""
+    """Abstract interface for LLM operations used by ORCA agents."""
 
     @abstractmethod
     async def generate_text(

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Activity, Clock, Database, Globe, RefreshCw, Shield, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Database, RefreshCw } from 'lucide-react';
 import { marineApi, type DataFreshnessSummary, type SystemStatusResponse } from '@/services/marine-api';
 
 export function DataStatusBadge() {
@@ -27,9 +27,12 @@ export function DataStatusBadge() {
   }
 
   useEffect(() => {
-    void refresh();
+    const initial = window.setTimeout(() => void refresh(), 0);
     const interval = setInterval(() => void refresh(), 60000);
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, []);
 
   const mode = status?.mode ?? freshness?.mode ?? 'unavailable';

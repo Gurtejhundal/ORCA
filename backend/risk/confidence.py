@@ -9,6 +9,7 @@ DESIRABLE_VARIABLES = {'wave_period', 'wind_gust', 'current_speed', 'visibility'
 def calculate_data_confidence(
     evidence_list: list[EvidenceItem] | list[dict[str, Any]],
     requested_time: datetime | None = None,
+    allow_replay: bool = False,
 ) -> tuple[float, list[str]]:
     """Calculate deterministic confidence (0.0 - 1.0) in available marine data."""
     if not evidence_list:
@@ -24,9 +25,9 @@ def calculate_data_confidence(
         q = item.quality if isinstance(item, EvidenceItem) else item.get('quality', 'unknown')
         s = item.is_stale if isinstance(item, EvidenceItem) else item.get('is_stale', False)
         value = item.value if isinstance(item, EvidenceItem) else item.get('value')
-        if p and value is not None and not s:
+        if p and value is not None and (allow_replay or not s):
             param_map[p] = item
-        if s:
+        if s and not allow_replay:
             stale_count += 1
         if q in ('official', 'official_warning'):
             official_count += 1

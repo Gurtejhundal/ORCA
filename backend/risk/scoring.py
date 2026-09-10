@@ -36,6 +36,7 @@ def calculate_risk_assessment(
     zone_intersections: list[dict[str, Any]] | None = None,
     vessel_profile_id: str = 'small_fishing_boat',
     requested_time: datetime | None = None,
+    demo_mode: bool = False,
 ) -> RiskAssessment:
     """Calculate deterministic marine risk score (0-100), level, and factor explainability."""
     # 1. Retrieve vessel profile configuration
@@ -57,7 +58,9 @@ def calculate_risk_assessment(
             units[p] = item.unit if isinstance(item, EvidenceItem) else item.get('unit')
 
     # 3. Calculate data confidence
-    confidence, missing_critical = calculate_data_confidence(evidence_list, requested_time)
+    confidence, missing_critical = calculate_data_confidence(
+        evidence_list, requested_time, allow_replay=demo_mode
+    )
 
     # 4. Evaluate official overrides
     has_override, override_level, overrides = evaluate_official_overrides(alerts, zone_intersections)

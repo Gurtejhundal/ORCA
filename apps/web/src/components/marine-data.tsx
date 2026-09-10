@@ -15,25 +15,27 @@ export function MarineData({ location, onLocation, onLayer }: {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    setLoading(true); setOcean(null); setWeather(null); setPFZ(null); setAlerts(null);
-    onLayer({ type: 'FeatureCollection', features: [] });
-    Promise.allSettled([
-      marineApi.getNearestPFZ(location, controller.signal),
-      marineApi.getOceanConditions(location, controller.signal),
-      marineApi.getWeather(location, controller.signal),
-      marineApi.getAlerts(location, controller.signal),
-      marineApi.getMapLayer('pfz', location, controller.signal),
-    ]).then(([p, o, w, a, layer]) => {
-      if (!active) return;
-      setPFZ(p.status === 'fulfilled' ? p.value : null);
-      setOcean(o.status === 'fulfilled' ? o.value : null);
-      setWeather(w.status === 'fulfilled' ? w.value : null);
-      setAlerts(a.status === 'fulfilled' ? a.value : null);
-      onLayer(layer.status === 'fulfilled' ? layer.value : { type: 'FeatureCollection', features: [] });
-      setNotice([p, o, w, a, layer].some(r => r.status === 'rejected') ? 'Some marine services are unavailable.' : '');
-      setLoading(false);
-    });
-    return () => { active = false; controller.abort(); };
+    const initial = window.setTimeout(() => {
+      setLoading(true); setOcean(null); setWeather(null); setPFZ(null); setAlerts(null);
+      onLayer({ type: 'FeatureCollection', features: [] });
+      void Promise.allSettled([
+        marineApi.getNearestPFZ(location, controller.signal),
+        marineApi.getOceanConditions(location, controller.signal),
+        marineApi.getWeather(location, controller.signal),
+        marineApi.getAlerts(location, controller.signal),
+        marineApi.getMapLayer('pfz', location, controller.signal),
+      ]).then(([p, o, w, a, layer]) => {
+        if (!active) return;
+        setPFZ(p.status === 'fulfilled' ? p.value : null);
+        setOcean(o.status === 'fulfilled' ? o.value : null);
+        setWeather(w.status === 'fulfilled' ? w.value : null);
+        setAlerts(a.status === 'fulfilled' ? a.value : null);
+        onLayer(layer.status === 'fulfilled' ? layer.value : { type: 'FeatureCollection', features: [] });
+        setNotice([p, o, w, a, layer].some(r => r.status === 'rejected') ? 'Some marine services are unavailable.' : '');
+        setLoading(false);
+      });
+    }, 0);
+    return () => { active = false; window.clearTimeout(initial); controller.abort(); };
   }, [location, onLayer]);
   function choose(p: Location) {
     setLoading(true); setOcean(null); setWeather(null); setPFZ(null); setAlerts(null);

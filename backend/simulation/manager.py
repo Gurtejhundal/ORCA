@@ -25,6 +25,7 @@ class SimulationManager:
         self._kinematics: Dict[str, VesselKinematics] = {}
         self._configs: Dict[str, SimulationConfig] = {}
         self._routes: Dict[str, RouteResult] = {}
+        self._route_progress_km: Dict[str, float] = {}
 
     def create_simulation(
         self,
@@ -58,6 +59,7 @@ class SimulationManager:
         self._kinematics[sim_id] = kinematics
         self._configs[sim_id] = config
         self._routes[sim_id] = route
+        self._route_progress_km[sim_id] = 0.0
         return state
 
     def get_simulation(self, simulation_id: str) -> Optional[SimulationState]:
@@ -69,6 +71,7 @@ class SimulationManager:
             del self._kinematics[simulation_id]
             del self._configs[simulation_id]
             del self._routes[simulation_id]
+            del self._route_progress_km[simulation_id]
             return True
         return False
 
@@ -87,11 +90,14 @@ class SimulationManager:
         # Calculate forward movement
         step_mins = config.step_interval_minutes
         step_km = config.speed_knots * (step_mins / 60.0) * 1.852
-        new_traveled = min(kinematics.total_distance_km, state.distance_traveled_km + step_km)
+        route_traveled = self._route_progress_km[simulation_id]
+        new_route_traveled = min(kinematics.total_distance_km, route_traveled + step_km)
+        traveled_this_step = new_route_traveled - route_traveled
+        voyage_traveled = state.distance_traveled_km + traveled_this_step
 
-        new_lat, new_lon, new_heading, is_done = kinematics.interpolate_position(new_traveled)
-        new_remaining = max(0.0, kinematics.total_distance_km - new_traveled)
-        pct = round((new_traveled / max(0.001, kinematics.total_distance_km)) * 100.0, 1)
+        new_lat, new_lon, new_heading, is_done = kinematics.interpolate_position(new_route_traveled)
+        new_remaining = max(0.0, kinematics.total_distance_km - new_route_traveled)
+        pct = round((voyage_traveled / max(0.001, voyage_traveled + new_remaining)) * 100.0, 1)
 
         # Geofence check
         gf_req = GeofenceCheckRequest(
@@ -116,11 +122,15 @@ class SimulationManager:
         needs_reroute = False
         recalculated_route: Optional[RouteResult] = None
 
-        if config.simulate_hazard_emergence and state.step_count == 2 and not state.route_needs_recalculation:
+        if not is_done and config.simulate_hazard_emergence and state.step_count == 2 and not state.route_needs_recalculation:
             needs_reroute = True
-        else:
+        elif not is_done:
             # Check remaining path against hazard polygons
-            rem_coords = [[p[1], p[0]] for p in route.coordinates if p[0] >= new_lat or p[1] >= new_lon]
+            remaining = [[new_lat, new_lon]] + [
+                point for point, distance in zip(kinematics.coords, kinematics.cumulative_dist_km)
+                if distance > new_route_traveled
+            ]
+            rem_coords = [[lon, lat] for lat, lon in remaining]
             if len(rem_coords) >= 2:
                 rem_line = LineString(rem_coords)
                 try:
@@ -150,26 +160,32 @@ class SimulationManager:
                 route_id=route.route_id,
                 hazard_id="hazard-dynamic-1",
                 hazard_name="Evolving High Wave Area",
-                intersection_distance_km=round(new_traveled + 3.0, 1),
+                intersection_distance_km=round(voyage_traveled + 3.0, 1),
                 vessel_id=config.vessel_id,
             )
             alerts.append(alert)
 
             # Issue map action to redraw rerouted safe path
             map_actions.append({
-                "type": "DRAW_ROUTE",
+                "action": "DRAW_ROUTE",
                 "id": recalculated_route.route_id,
                 "geojson": recalculated_route.geojson,
                 "title": f"Safe Reroute to Destination ({round(recalculated_route.total_distance_km, 1)} km)",
             })
 
             # Update kinematics to follow new route
-            self._kinematics[simulation_id] = VesselKinematics(recalculated_route.coordinates)
+            reroute_kinematics = VesselKinematics(recalculated_route.coordinates)
+            self._kinematics[simulation_id] = reroute_kinematics
             self._routes[simulation_id] = recalculated_route
+            self._route_progress_km[simulation_id] = 0.0
+            new_remaining = reroute_kinematics.total_distance_km
+            pct = round((voyage_traveled / max(0.001, voyage_traveled + new_remaining)) * 100.0, 1)
+        else:
+            self._route_progress_km[simulation_id] = new_route_traveled
 
         # UPDATE_VESSEL MapLibre action
         map_actions.append({
-            "type": "UPDATE_VESSEL",
+            "action": "UPDATE_VESSEL",
             "id": config.vessel_id,
             "position": {"lat": new_lat, "lon": new_lon},
             "heading": new_heading,
@@ -182,13 +198,14 @@ class SimulationManager:
         state.current_heading = new_heading
         state.step_count += 1
         state.elapsed_time_minutes += step_mins
-        state.distance_traveled_km = round(new_traveled, 2)
+        state.distance_traveled_km = round(voyage_traveled, 2)
         state.remaining_distance_km = round(new_remaining, 2)
         state.progress_percentage = pct
         state.is_completed = is_done
         state.geofence_status = gf_status
         state.active_warnings = active_warnings
         if needs_reroute:
+            state.route_id = recalculated_route.route_id
             state.route_needs_recalculation = True
             state.recalculated_route = recalculated_route
 

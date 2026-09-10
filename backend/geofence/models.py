@@ -1,6 +1,6 @@
 """Pydantic schemas and models for Geofencing, Proximity and Trajectory Prediction."""
 from __future__ import annotations
-from typing import List, Optional, Dict, Any, Literal
+from typing import Annotated, List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 from backend.routing.models import LatLon
 
@@ -10,7 +10,9 @@ class GeofenceCheckRequest(BaseModel):
     heading_degrees: Optional[float] = Field(None, ge=0.0, le=360.0)
     speed_knots: Optional[float] = Field(None, ge=0.0)
     vessel_id: Optional[str] = "vessel-1"
-    lookahead_minutes: List[int] = [15, 30, 60]
+    lookahead_minutes: List[Annotated[int, Field(gt=0, le=360)]] = Field(
+        default_factory=lambda: [15, 30, 60], min_length=1, max_length=12
+    )
 
 
 class ProjectedPosition(BaseModel):

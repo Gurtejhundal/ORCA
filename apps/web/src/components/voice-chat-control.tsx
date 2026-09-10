@@ -9,11 +9,42 @@ interface VoiceChatControlProps {
   disabled?: boolean;
 }
 
+type SpeechRecognitionEventLike = {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+};
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+const VOICE_COPY = {
+  en: {
+    listening: 'Listening...', transcribing: 'Transcribing...', browserListening: 'Listening (Browser)...',
+    unavailable: 'Voice input unavailable. Please type your query.', recognitionError: 'Voice recognition error. Please type your query.', unsupported: 'Voice input not supported in this browser.',
+    stopRecording: 'Click to stop recording', speakQuery: 'Click to speak query', stopInput: 'Stop voice recording', startInput: 'Start voice input',
+    stopReading: 'Stop reading', listenAnswer: 'Listen to answer (TTS)', readAloud: 'Read answer out loud', stop: 'Stop', listen: 'Listen',
+  },
+  hi: {
+    listening: 'सुना जा रहा है…', transcribing: 'लिखित रूप बनाया जा रहा है…', browserListening: 'ब्राउज़र सुन रहा है…',
+    unavailable: 'आवाज़ इनपुट उपलब्ध नहीं है। कृपया सवाल लिखें।', recognitionError: 'आवाज़ पहचानने में त्रुटि हुई। कृपया सवाल लिखें।', unsupported: 'यह ब्राउज़र आवाज़ इनपुट का समर्थन नहीं करता।',
+    stopRecording: 'रिकॉर्डिंग रोकें', speakQuery: 'सवाल बोलें', stopInput: 'आवाज़ रिकॉर्डिंग रोकें', startInput: 'आवाज़ इनपुट शुरू करें',
+    stopReading: 'पढ़ना रोकें', listenAnswer: 'उत्तर सुनें', readAloud: 'उत्तर सुनाएँ', stop: 'रोकें', listen: 'सुनें',
+  },
+} as const;
+
 export function VoiceChatControl({
   onTranscript,
   languageHint = 'en',
   disabled = false,
 }: VoiceChatControlProps) {
+  const copy = VOICE_COPY[languageHint === 'hi' ? 'hi' : 'en'];
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState<string>('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -23,7 +54,7 @@ export function VoiceChatControl({
     if (disabled || recording) return;
 
     try {
-      setStatus('Listening...');
+      setStatus(copy.listening);
       audioChunksRef.current = [];
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -45,7 +76,7 @@ export function VoiceChatControl({
           return;
         }
 
-        setStatus('Transcribing...');
+        setStatus(copy.transcribing);
         try {
           // 1. Try Bhashini / backend transcribe
           const res = await marineApi.transcribeAudio(audioBlob, languageHint);
@@ -77,13 +108,14 @@ export function VoiceChatControl({
   }
 
   function startBrowserRecognitionFallback() {
-    const SpeechRecognition =
-      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any })
-        .SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+    const speechWindow = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionConstructor;
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setStatus('Voice input unavailable. Please type your query.');
+      setStatus(copy.unavailable);
       setTimeout(() => setStatus(''), 4000);
       return;
     }
@@ -95,10 +127,10 @@ export function VoiceChatControl({
 
       recognition.onstart = () => {
         setRecording(true);
-        setStatus('Listening (Browser)...');
+        setStatus(copy.browserListening);
       };
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
         if (text) {
           onTranscript(text);
@@ -109,7 +141,7 @@ export function VoiceChatControl({
 
       recognition.onerror = () => {
         setRecording(false);
-        setStatus('Voice recognition error. Please type your query.');
+        setStatus(copy.recognitionError);
         setTimeout(() => setStatus(''), 4000);
       };
 
@@ -121,7 +153,7 @@ export function VoiceChatControl({
       recognition.start();
     } catch {
       setRecording(false);
-      setStatus('Voice input not supported in this browser.');
+      setStatus(copy.unsupported);
       setTimeout(() => setStatus(''), 4000);
     }
   }
@@ -137,8 +169,8 @@ export function VoiceChatControl({
             ? 'bg-rose-600 text-white animate-pulse ring-4 ring-rose-500/30'
             : 'bg-white/10 hover:bg-white/20 text-white/90'
         }`}
-        title={recording ? 'Click to stop recording' : 'Click to speak query'}
-        aria-label={recording ? 'Stop voice recording' : 'Start voice input'}
+        title={recording ? copy.stopRecording : copy.speakQuery}
+        aria-label={recording ? copy.stopInput : copy.startInput}
       >
         {recording ? <MicOff size={16} /> : <Mic size={16} />}
       </button>
@@ -160,6 +192,7 @@ export function AudioPlayer({
   text: string;
   language?: string;
 }) {
+  const copy = VOICE_COPY[language === 'hi' ? 'hi' : 'en'];
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -212,11 +245,11 @@ export function AudioPlayer({
           ? 'bg-sky-500/20 text-sky-300'
           : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'
       }`}
-      title={playing ? 'Stop reading' : 'Listen to answer (TTS)'}
-      aria-label="Read answer out loud"
+      title={playing ? copy.stopReading : copy.listenAnswer}
+      aria-label={copy.readAloud}
     >
       {playing ? <VolumeX size={14} /> : <Volume2 size={14} />}
-      <span className="text-[11px]">{playing ? 'Stop' : 'Listen'}</span>
+      <span className="text-[11px]">{playing ? copy.stop : copy.listen}</span>
     </button>
   );
 }

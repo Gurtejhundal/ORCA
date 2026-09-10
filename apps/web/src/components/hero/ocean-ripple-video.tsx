@@ -120,7 +120,7 @@ type Wave = {
   opacity: number;
 };
 
-export function OceanRippleVideo() {
+export function OceanRippleVideo({ ariaLabel = 'Fishing boat moving through the ocean' }: { ariaLabel?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
@@ -439,7 +439,7 @@ export function OceanRippleVideo() {
         preload="auto"
         poster={POSTER_SRC}
         onCanPlay={() => setVideoReady(true)}
-        aria-label="Fishing boat moving through the ocean"
+        aria-label={ariaLabel}
       >
         <source src={VIDEO_SRC} type="video/mp4" />
       </video>

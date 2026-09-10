@@ -1,10 +1,11 @@
-# SamudraAI live readiness — 9 September 2026
+# ORCA live readiness — 9 September 2026
 
 This document records what was exercised from the running local stack. “Live” means the response came from the named remote provider during the audit; it does not mean nautical certification or continuous provider availability.
 
 | Capability | Result | Provenance / behavior |
 |---|---|---|
-| Health, PostgreSQL, PostGIS | Passing | `/health` and `/api/v1/system/status`; database and PostGIS reported online |
+| Process health | Passing | `/health` and `/api/v1/system/status` returned through the Next.js proxy |
+| PostgreSQL, PostGIS | Not exercised in this checkout | Docker is unavailable; database integration tests skipped explicitly |
 | PFZ list and nearest PFZ | Provider reachable; current result unavailable | INCOIS PFZ WFS responded, but its latest published product was outside the conservative validity window during the final 9 September audit, so it was not served as current |
 | Wave and swell forecast | Live | INCOIS Ocean State Forecast |
 | Marine fallback fields | Live fallback | Open-Meteo Marine, always labelled as Open-Meteo |

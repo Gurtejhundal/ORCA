@@ -44,7 +44,7 @@ def create_app(config: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         db = Database(config.database_url)
         cache = MemoryCache(config.cache_max_entries)
-        async with httpx.AsyncClient(headers={'User-Agent': 'SamudraAI/1.0'}, trust_env=False,
+        async with httpx.AsyncClient(headers={'User-Agent': 'ORCA/1.0'}, trust_env=False,
                                      limits=httpx.Limits(max_connections=20)) as client:
             http = SafeHTTP(config, client)
             registry = SourceRegistry(cache)
@@ -77,7 +77,7 @@ def create_app(config: Settings | None = None) -> FastAPI:
             await asyncio.gather(*cache.inflight.values(), return_exceptions=True)
         await db.close()
 
-    app = FastAPI(title='SamudraAI Marine Intelligence Platform', version='3.0.0', lifespan=lifespan,
+    app = FastAPI(title='ORCA Marine Intelligence Platform', version='3.0.0', lifespan=lifespan,
                   description='Part 3: Deterministic Marine Risk Engine, Safe PFZ Ranking, A* Route Optimization, Geofencing & Vessel Simulation.')
     app.add_middleware(
         CORSMiddleware,

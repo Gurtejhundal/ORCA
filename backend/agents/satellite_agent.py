@@ -2,7 +2,7 @@ import numpy as np
 from datetime import datetime
 from backend.agents.base import BaseAgent
 from backend.agents.schemas import AgentInput, AgentOutput, EvidenceItem
-from backend.schemas.marine import Location
+from backend.schemas.marine import Location, utcnow
 from backend.services.marine import MarineService
 
 
@@ -46,7 +46,7 @@ class SatelliteAgent(BaseAgent):
                         location={'lat': marine_loc.lat, 'lon': marine_loc.lon},
                         source=sst_obs.source,
                         forecast_time=sst_obs.forecast_time.isoformat() if sst_obs.forecast_time else None,
-                        fetched_at=datetime.utcnow().isoformat(),
+                        fetched_at=utcnow().isoformat(),
                         quality=sst_obs.quality,
                     )
                 )
@@ -61,7 +61,7 @@ class SatelliteAgent(BaseAgent):
                         location={'lat': marine_loc.lat, 'lon': marine_loc.lon},
                         source=chl_obs.source,
                         forecast_time=chl_obs.forecast_time.isoformat() if chl_obs.forecast_time else None,
-                        fetched_at=datetime.utcnow().isoformat(),
+                        fetched_at=utcnow().isoformat(),
                         quality=chl_obs.quality,
                     )
                 )

@@ -9,9 +9,9 @@ router = APIRouter(prefix='/api/v1', tags=['Chat & AI Agent Orchestration'])
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000, description="User question or statement")
-    session_id: str | None = Field(None, description="Client session ID for multi-turn conversation memory")
+    session_id: str | None = Field(None, min_length=1, max_length=128, description="Client session ID for multi-turn conversation memory")
     location: Location | None = Field(None, description="Optional GPS coordinates {lat, lon}")
-    language: str | None = Field(None, description="Optional language hint (e.g. 'en', 'hi', 'ta')")
+    language: str | None = Field(None, min_length=2, max_length=16, description="Optional language hint (e.g. 'en', 'hi', 'ta')")
     developer_mode: bool = Field(False, description="Include developer diagnostics")
 
 

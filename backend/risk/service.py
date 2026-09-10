@@ -10,7 +10,8 @@ from backend.risk.models import (
     SafetyAnalysisResponse,
 )
 from backend.risk.scoring import calculate_risk_assessment
-from backend.schemas.marine import Location
+from backend.geospatial.utils import point_in_polygon
+from backend.schemas.marine import Location, utcnow
 from backend.services.marine import MarineService
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class MarineRiskService:
                             location={'lat': loc.lat, 'lon': loc.lon},
                             source=obs.source,
                             forecast_time=obs.forecast_time.isoformat() if obs.forecast_time else None,
-                            fetched_at=obs.fetched_at.isoformat() if obs.fetched_at else datetime.utcnow().isoformat(),
+                            fetched_at=obs.fetched_at.isoformat() if obs.fetched_at else utcnow().isoformat(),
                             quality=obs.quality,
                             is_stale=obs.is_stale,
                         )
@@ -95,14 +96,19 @@ class MarineRiskService:
                             location={'lat': loc.lat, 'lon': loc.lon},
                             source=obs.source,
                             forecast_time=obs.forecast_time.isoformat() if obs.forecast_time else None,
-                            fetched_at=obs.fetched_at.isoformat() if obs.fetched_at else datetime.utcnow().isoformat(),
+                            fetched_at=obs.fetched_at.isoformat() if obs.fetched_at else utcnow().isoformat(),
                             quality=obs.quality,
                             is_stale=obs.is_stale,
                         )
                     )
 
         alerts_list = a_resp.alerts if not isinstance(a_resp, Exception) else []
+        applicable_alerts = [
+            alert for alert in alerts_list
+            if not alert.get('geometry') or point_in_polygon(loc, alert['geometry'])
+        ]
         zones_list = z_resp if not isinstance(z_resp, Exception) else []
+        zone_intersections = [z for z in zones_list if point_in_polygon(loc, z['geometry'])]
         for name, response in [('weather', w_resp), ('ocean', o_resp), ('alerts', a_resp), ('boundaries', z_resp)]:
             if isinstance(response, Exception):
                 warnings.append(f'{name} unavailable')
@@ -113,10 +119,11 @@ class MarineRiskService:
         # 2. Compute risk assessment
         risk_assessment = calculate_risk_assessment(
             evidence_list=evidence,
-            alerts=alerts_list,
-            zone_intersections=zones_list,
+            alerts=applicable_alerts,
+            zone_intersections=zone_intersections,
             vessel_profile_id=vessel_profile,
             requested_time=requested_time,
+            demo_mode=self.service.settings.demo_mode,
         )
         if not self.service.settings.demo_mode and (alerts_unavailable or not zones_list):
             risk_assessment.missing_critical_data.append('verified_alert_and_boundary_coverage')

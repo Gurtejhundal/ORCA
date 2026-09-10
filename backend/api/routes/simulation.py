@@ -1,8 +1,8 @@
 """Vessel Simulation and Dynamic Movement API Endpoints."""
 from __future__ import annotations
-from typing import Optional
+from typing import Literal, Optional
 from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from backend.routing.models import LatLon, RouteRequest, RouteResult
 from backend.routing.route_service import MarineRouteService
 from backend.simulation.models import SimulationConfig, SimulationState, SimulationStepResult
@@ -12,14 +12,22 @@ router = APIRouter(prefix="/api/v1/simulation", tags=["Vessel Simulation & Dynam
 
 
 class StartSimulationRequest(BaseModel):
-    route_id: Optional[str] = None
-    vessel_id: str = "vessel-1"
-    vessel_type: str = "small_fishing_boat"
-    speed_knots: float = 12.0
-    step_interval_minutes: float = 5.0
+    route_id: Optional[str] = Field(None, max_length=128)
+    vessel_id: str = Field("vessel-1", min_length=1, max_length=128)
+    vessel_type: Literal["small_fishing_boat", "medium_fishing_vessel", "generic_vessel"] = "small_fishing_boat"
+    speed_knots: float = Field(12.0, gt=0, le=100)
+    step_interval_minutes: float = Field(5.0, gt=0, le=60)
     simulate_hazard_emergence: bool = False
     origin: Optional[LatLon] = None
     destination: Optional[LatLon] = None
+
+    @model_validator(mode='after')
+    def complete_route_coordinates(self):
+        if (self.origin is None) != (self.destination is None):
+            raise ValueError('origin and destination must be provided together')
+        if self.route_id and self.origin is None:
+            raise ValueError('route_id lookup is unavailable; provide origin and destination')
+        return self
 
 
 def get_simulation_manager(request: Request) -> SimulationManager:

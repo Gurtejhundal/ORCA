@@ -6,6 +6,8 @@
   --foam-muted: rgba(244, 251, 248, 0.7);
   --glass-line: rgba(255, 255, 255, 0.3);
   --signal: #dff7d2;
+  --marine-glass: rgba(4, 30, 41, 0.48);
+  --marine-glass-blur: blur(30px) saturate(112%);
   --font-sans: 'IBM Plex Sans', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
@@ -19,7 +21,7 @@ body {
   min-width: 320px;
   min-height: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow-x: clip;
   background: #315d6c;
   color: var(--foam);
   font-family: var(--font-sans);
@@ -138,6 +140,11 @@ input:focus-visible {
   width: 100%;
   min-height: 78px;
   padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--marine-glass);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: var(--marine-glass-blur);
+  -webkit-backdrop-filter: var(--marine-glass-blur);
   pointer-events: none;
 }
 
@@ -151,36 +158,28 @@ input:focus-visible {
 }
 
 .orca-nav__rail::after {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  width: calc(100% + 48px);
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(2, 15, 22, 0.34);
-  filter: blur(14px);
-  content: '';
-  pointer-events: none;
-  transform: translateX(-50%);
+  display: none;
 }
 
-.orca-nav__rail a {
+.orca-nav__rail button {
   position: relative;
   z-index: 1;
   padding: 8px 0;
   color: rgba(244, 251, 248, 0.7);
   font-size: 11px;
-  text-decoration: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
   text-shadow: 0 1px 10px rgba(0, 18, 28, 0.42);
   transition: color 160ms ease;
 }
 
-.orca-nav__rail a:hover,
-.orca-nav__rail a[aria-current='page'] {
+.orca-nav__rail button:hover,
+.orca-nav__rail button[aria-current='page'] {
   color: #ffffff;
 }
 
-.orca-nav__rail a[aria-current='page']::after {
+.orca-nav__rail button[aria-current='page']::after {
   position: absolute;
   bottom: 1px;
   left: 50%;
@@ -190,6 +189,43 @@ input:focus-visible {
   background: #ffffff;
   content: '';
   transform: translateX(-50%);
+}
+
+.language-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: var(--marine-glass);
+  backdrop-filter: var(--marine-glass-blur);
+  -webkit-backdrop-filter: var(--marine-glass-blur);
+}
+
+.language-switch--hero {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  z-index: 13;
+}
+
+.language-switch button {
+  min-width: 44px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(245, 252, 250, 0.7);
+  font: 10px var(--font-mono);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.language-switch button[aria-pressed='true'] {
+  background: rgba(250, 255, 253, 0.94);
+  color: #123642;
 }
 
 .orca-tool-rail {
@@ -202,9 +238,10 @@ input:focus-visible {
   padding: 8px 5px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 18px;
-  background: rgba(5, 28, 38, 0.26);
+  background: var(--marine-glass);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 12px 28px rgba(0, 12, 18, 0.18);
-  backdrop-filter: blur(10px) saturate(125%);
+  backdrop-filter: var(--marine-glass-blur);
+  -webkit-backdrop-filter: var(--marine-glass-blur);
   transform: translateY(-50%);
 }
 
@@ -229,6 +266,11 @@ input:focus-visible {
   color: #ffffff;
 }
 
+.orca-tool-rail button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
 .orca-tool-rail button span {
   max-width: 54px;
 }
@@ -243,14 +285,15 @@ input:focus-visible {
   transform: translateX(-50%);
 }
 
-.ask-orca__glass {
+.ask-orca__surface {
   position: absolute;
   inset: 0;
   border-radius: 25px;
-}
-
-.ask-orca__glass > div {
-  padding: 3px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--marine-glass);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 16px 38px rgba(0,18,26,.16);
+  backdrop-filter: var(--marine-glass-blur);
+  -webkit-backdrop-filter: var(--marine-glass-blur);
 }
 
 .ask-orca__form {
@@ -379,12 +422,13 @@ input:focus-visible {
   padding: 0 15px;
   border: 1px solid rgba(255, 255, 255, 0.17);
   border-radius: 999px;
-  background: rgba(4, 28, 39, 0.24);
+  background: var(--marine-glass);
   color: rgba(245, 252, 250, 0.76);
   font-size: 10px;
   white-space: nowrap;
   cursor: pointer;
-  backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(24px) saturate(112%);
+  -webkit-backdrop-filter: blur(24px) saturate(112%);
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
@@ -401,11 +445,6 @@ input:focus-visible {
 
   .orca-nav__rail {
     gap: 24px;
-  }
-
-  .orca-nav__rail a:nth-child(4),
-  .orca-nav__rail a:nth-child(5) {
-    display: none;
   }
 
   .orca-tool-rail {
@@ -431,32 +470,33 @@ input:focus-visible {
 
 @media (max-width: 600px) {
   .orca-nav {
+    justify-content: flex-start;
     min-height: 64px;
-    padding: 12px;
+    padding: 12px 104px 12px 14px;
   }
 
-  .orca-nav__rail a:not(:first-child) {
-    display: none;
+  .orca-nav__rail {
+    justify-content: flex-start;
+    gap: 14px;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .orca-nav__rail a:first-child {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-indent: 0.22em;
+  .orca-nav__rail button {
+    flex: 0 0 auto;
+    font-size: 9px;
   }
 
-  .orca-nav__rail a:first-child::before {
-    content: 'ORCA';
+  .language-switch--hero {
+    top: 9px;
+    right: 10px;
   }
 
-  .orca-nav__rail a:first-child {
-    font-size: 0;
-  }
-
-  .orca-nav__rail a:first-child::before {
-    font-size: 12px;
+  .language-switch button {
+    min-width: 40px;
+    min-height: 38px;
+    padding-inline: 8px;
   }
 
   .orca-tool-rail {
@@ -480,7 +520,7 @@ input:focus-visible {
     height: 64px;
   }
 
-  .ask-orca__glass {
+  .ask-orca__surface {
     border-radius: 22px;
   }
 

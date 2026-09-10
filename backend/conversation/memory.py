@@ -1,6 +1,6 @@
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from backend.conversation.context import ConversationContext, CandidatePFZ, LocationState
 from backend.database.repository import Repository
@@ -64,7 +64,7 @@ class ConversationMemory:
     async def save_context(self, context: ConversationContext) -> None:
         """Save updated context to in-memory cache and database."""
         context.turn_count += 1
-        context.updated_at = datetime.utcnow()
+        context.updated_at = datetime.now(timezone.utc)
         self._in_memory[context.session_id] = context
 
         if self.repo:

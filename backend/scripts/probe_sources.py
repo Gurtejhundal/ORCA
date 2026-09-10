@@ -25,7 +25,7 @@ URLS = {
 def probe(item):
     name, url = item
     try:
-        with urlopen(Request(url, headers={'User-Agent': 'SamudraAI-research/1.0'}), timeout=20) as response:
+        with urlopen(Request(url, headers={'User-Agent': 'ORCA-research/1.0'}), timeout=20) as response:
             body = response.read(2_000_000)
             output = Path('output/source-probes')
             output.mkdir(parents=True, exist_ok=True)

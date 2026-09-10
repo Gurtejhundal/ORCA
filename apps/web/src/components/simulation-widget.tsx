@@ -1,6 +1,6 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
-import { Play, Square, FastForward, Navigation2, Compass, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Play, Square, FastForward, Navigation2, Compass, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { marineApi, type SimulationState, type Location, type RouteResult } from '@/services/marine-api';
 
 interface SimulationWidgetProps {
@@ -49,7 +49,7 @@ export function SimulationWidget({
     }
   }
 
-  async function handleStep() {
+  const handleStep = useCallback(async () => {
     if (!simState || stepping.current) return;
     stepping.current = true;
     try {
@@ -73,7 +73,7 @@ export function SimulationWidget({
     } finally {
       stepping.current = false;
     }
-  }
+  }, [onRouteRecalculated, onVesselMove, simState]);
 
   async function handleStop() {
     if (timerRef.current) {
@@ -103,7 +103,7 @@ export function SimulationWidget({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [running, simState]);
+  }, [handleStep, running, simState]);
 
   return (
     <div className="bg-[#0f1923]/90 border border-white/10 rounded-xl p-4 shadow-xl text-white backdrop-blur-md">

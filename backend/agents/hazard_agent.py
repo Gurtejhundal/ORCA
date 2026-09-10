@@ -1,7 +1,6 @@
-from datetime import datetime
 from backend.agents.base import BaseAgent
 from backend.agents.schemas import AgentInput, AgentOutput, EvidenceItem
-from backend.schemas.marine import Location
+from backend.schemas.marine import Location, utcnow
 from backend.services.marine import MarineService
 
 
@@ -33,7 +32,7 @@ class HazardAgent(BaseAgent):
                     location={'lat': marine_loc.lat, 'lon': marine_loc.lon},
                     source=alert.get('source', 'INCOIS/IMD'),
                     forecast_time=alert.get('valid_until'),
-                    fetched_at=datetime.utcnow().isoformat(),
+                    fetched_at=utcnow().isoformat(),
                     freshness_minutes=alert.get('freshness_minutes', 0.0) or 0.0,
                     quality='official_warning',
                     is_stale=alert.get('is_stale', False) or False,

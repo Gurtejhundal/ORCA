@@ -22,6 +22,7 @@ def astar_search(
     vessel_type: str = "small_fishing_boat",
     wave_sample_fn=None,
     wind_sample_fn=None,
+    avoid_hazards: bool = False,
 ) -> Optional[List[Tuple[float, float]]]:
     """Runs 8-connected A* search over the NavigationGrid.
     Returns list of (lat, lon) path waypoints or None if unreachable.
@@ -31,6 +32,8 @@ def astar_search(
 
     # Check start and goal navigability
     start_status, _ = grid.evaluate_cell(start_idx[0], start_idx[1])
+    if avoid_hazards and start_status == 3:
+        return None
     if start_status in (1, 2):  # Land or restricted
         # Find closest navigable cell
         start_idx = _find_closest_navigable(grid, start_idx)
@@ -38,6 +41,8 @@ def astar_search(
             return None
 
     goal_status, _ = grid.evaluate_cell(goal_idx[0], goal_idx[1])
+    if avoid_hazards and goal_status == 3:
+        return None
     if goal_status in (1, 2):
         goal_idx = _find_closest_navigable(grid, goal_idx)
         if not goal_idx:
@@ -96,6 +101,8 @@ def astar_search(
             is_hazard = (status == 3)
             is_restricted = (status == 2)
             is_land = (status == 1)
+            if avoid_hazards and is_hazard:
+                continue
 
             n_lat, n_lon = grid.grid_to_coord(ni, nj)
             wave_h = wave_sample_fn(n_lat, n_lon) if wave_sample_fn else 1.2

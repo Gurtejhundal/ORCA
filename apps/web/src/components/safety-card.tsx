@@ -1,5 +1,5 @@
 'use client';
-import { ShieldAlert, ShieldCheck, AlertOctagon, Activity, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, AlertOctagon, HelpCircle } from 'lucide-react';
 import type { RiskAssessment } from '@/services/marine-api';
 
 interface SafetyCardProps {

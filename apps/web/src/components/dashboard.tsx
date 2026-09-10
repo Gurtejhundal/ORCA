@@ -63,50 +63,140 @@ const MarineMap = dynamic(
   () => import('./marine-map').then((module) => module.MarineMap),
   {
     ssr: false,
-    loading: () => <div className="map-loading">Loading marine map…</div>,
+    loading: () => <div className="map-loading" aria-hidden="true"><LoaderCircle className="spinner" size={20} /></div>,
   },
 );
 export const DEMO_QUERY =
   'I am leaving from Nagapattinam tomorrow at 5 AM. Where should I fish and what is the safest route?';
-const SCENARIOS: { id: Scenario; label: string; description: string }[] = [
+const DASHBOARD_COPY = {
+  en: {
+    demoQuery: DEMO_QUERY,
+    skip: 'Skip to trip planner',
+    headingEyebrow: 'OCEAN CONTEXT. INFORMED DECISIONS.',
+    heading: 'Your next voyage, reasoned.',
+    scenario: 'Scenario',
+    reset: 'Reset demo',
+    planner: 'TRIP PLANNER',
+    plannerLabel: 'Trip planner and agent execution',
+    port: 'Port:',
+    gpsTitle: 'Detect live GPS position',
+    gpsActive: 'GPS Active',
+    liveGps: 'Live GPS',
+    destination: 'Where are we heading?',
+    analyzing: 'Analyzing evidence…',
+    run: 'Run analysis',
+    nearest: 'Why not the nearest?',
+    nearestQuery: 'Why not the nearest fishing zone?',
+    later: 'Leave 3 hours later',
+    laterQuery: 'What if I leave 3 hours later?',
+    warningNote: 'Marine data warnings apply to the backend answer. Scenario metrics remain a labelled replay.',
+    departure: 'Departure',
+    reasoning: 'Reasoning trail',
+    running: 'RUNNING',
+    toolTime: 'ms · tool time',
+    traceLabel: 'Completed tool execution',
+    traceFootnote: 'Actual service calls · Deterministic rules',
+    geolocationUnavailable: 'Geolocation is not supported by your browser.',
+    gpsError: 'GPS error',
+    backendUnavailable: 'Backend analysis unavailable. The scenario metrics below remain a demo replay.',
+    backendUnavailableShort: 'Backend analysis unavailable',
+    timeout: 'Analysis timed out. Retry the request.',
+    analysisFailed: 'The analysis could not be completed.',
+    analysisFailedShort: 'Analysis failed',
+    portQuery: (name: string) => `I am departing from ${name}. Where should I fish and what is the safest route?`,
+    gpsQuery: (lat: string, lon: string) => `What is the marine risk and nearest safe fishing zone from my current GPS position (${lat}, ${lon})?`,
+  },
+  hi: {
+    demoQuery: 'मैं Nagapattinam से कल सुबह 5 बजे निकल रहा हूँ। मुझे कहाँ मछली पकड़नी चाहिए और सबसे सुरक्षित मार्ग कौन सा है?',
+    skip: 'यात्रा योजनाकार पर जाएँ',
+    headingEyebrow: 'समुद्री संदर्भ। सूचित निर्णय।',
+    heading: 'आपकी अगली समुद्री यात्रा, तर्क सहित।',
+    scenario: 'परिस्थिति',
+    reset: 'डेमो रीसेट करें',
+    planner: 'यात्रा योजनाकार',
+    plannerLabel: 'यात्रा योजना और एजेंट प्रक्रिया',
+    port: 'बंदरगाह:',
+    gpsTitle: 'वर्तमान GPS स्थिति पता करें',
+    gpsActive: 'GPS सक्रिय',
+    liveGps: 'लाइव GPS',
+    destination: 'हम कहाँ जा रहे हैं?',
+    analyzing: 'प्रमाणों का विश्लेषण जारी है…',
+    run: 'विश्लेषण चलाएँ',
+    nearest: 'निकटतम क्षेत्र क्यों नहीं?',
+    nearestQuery: 'निकटतम मछली पकड़ने का क्षेत्र क्यों नहीं चुना गया?',
+    later: '3 घंटे बाद निकलें',
+    laterQuery: 'अगर मैं 3 घंटे बाद निकलूँ तो क्या बदलेगा?',
+    warningNote: 'समुद्री डेटा चेतावनियाँ बैकएंड उत्तर पर लागू होती हैं। परिस्थिति के आँकड़े स्पष्ट रूप से डेमो हैं।',
+    departure: 'प्रस्थान',
+    reasoning: 'निर्णय का आधार',
+    running: 'जारी',
+    toolTime: 'मि.से. · उपकरण समय',
+    traceLabel: 'पूरी हुई उपकरण प्रक्रिया',
+    traceFootnote: 'वास्तविक सेवा कॉल · निश्चित नियम',
+    geolocationUnavailable: 'आपका ब्राउज़र स्थान सेवा का समर्थन नहीं करता।',
+    gpsError: 'GPS त्रुटि',
+    backendUnavailable: 'बैकएंड विश्लेषण उपलब्ध नहीं है। नीचे दिए परिस्थिति आँकड़े डेमो रीप्ले हैं।',
+    backendUnavailableShort: 'बैकएंड विश्लेषण उपलब्ध नहीं है',
+    timeout: 'विश्लेषण का समय समाप्त हुआ। फिर प्रयास करें।',
+    analysisFailed: 'विश्लेषण पूरा नहीं हो सका।',
+    analysisFailedShort: 'विश्लेषण विफल रहा',
+    portQuery: (name: string) => `मैं ${name} से निकल रहा हूँ। मुझे कहाँ मछली पकड़नी चाहिए और सबसे सुरक्षित मार्ग कौन सा है?`,
+    gpsQuery: (lat: string, lon: string) => `मेरी वर्तमान GPS स्थिति (${lat}, ${lon}) से समुद्री जोखिम और निकटतम सुरक्षित मछली क्षेत्र कौन सा है?`,
+  },
+} as const;
+const SCENARIOS: { id: Scenario; label: Record<'en' | 'hi', string>; description: Record<'en' | 'hi', string> }[] = [
   {
     id: 'normal',
-    label: 'Normal conditions',
-    description: 'Baseline synthetic replay',
+    label: { en: 'Normal conditions', hi: 'सामान्य स्थिति' },
+    description: { en: 'Baseline synthetic replay', hi: 'आधारभूत कृत्रिम रीप्ले' },
   },
   {
     id: 'high-waves',
-    label: 'High waves',
-    description: 'Elevated waves around Zone B',
+    label: { en: 'High waves', hi: 'ऊँची लहरें' },
+    description: { en: 'Elevated waves around Zone B', hi: 'Zone B के पास ऊँची लहरें' },
   },
   {
     id: 'restricted-route',
-    label: 'Zone B closure',
-    description: 'Additional forbidden polygon at Zone B',
+    label: { en: 'Zone B closure', hi: 'Zone B बंद' },
+    description: { en: 'Additional forbidden polygon at Zone B', hi: 'Zone B में अतिरिक्त निषिद्ध क्षेत्र' },
   },
   {
     id: 'api-failure',
-    label: 'Provider failure',
-    description: 'Marine readings unavailable',
+    label: { en: 'Provider failure', hi: 'डेटा प्रदाता विफल' },
+    description: { en: 'Marine readings unavailable', hi: 'समुद्री माप उपलब्ध नहीं' },
   },
 ];
+const AGENT_NAMES_HI: Record<string, string> = {
+  Planner: 'योजना',
+  'Marine intelligence': 'समुद्री विश्लेषण',
+  'Weather intelligence': 'मौसम विश्लेषण',
+  'Geospatial analysis': 'भौगोलिक विश्लेषण',
+  'Decision engine': 'निर्णय इंजन',
+  'Route comparison': 'मार्ग तुलना',
+  Explanation: 'स्पष्टीकरण',
+};
 export function Dashboard({
   initialDecision,
   initialContext,
+  embedded = false,
+  language = 'en',
 }: {
   initialDecision: DecisionResponse;
   initialContext: ConversationContext;
+  embedded?: boolean;
+  language?: 'en' | 'hi';
 }) {
+  const copy = DASHBOARD_COPY[language];
   const [decision, setDecision] = useState(initialDecision);
   const [context, setContext] = useState(initialContext);
-  const [message, setMessage] = useState(DEMO_QUERY);
+  const [message, setMessage] = useState<string | null>(null);
   const [scenario, setScenario] = useState<Scenario>('normal');
   const [selectedZone, setSelectedZone] = useState(
     initialDecision.recommendation.candidateZoneId ?? 'zone-a',
   );
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState('');
-  const [lastQuery, setLastQuery] = useState(DEMO_QUERY);
+  const [lastQuery, setLastQuery] = useState<string>(copy.demoQuery);
   const controller = useRef<AbortController | null>(null);
 
   // Part 4 State
@@ -129,11 +219,12 @@ export function Dashboard({
   const isSuccess =
     result.status === 'RECOMMENDED' || result.status === 'CAUTION';
   const elapsed = decision.agentTrace.reduce((sum, t) => sum + t.durationMs, 0);
+  const currentMessage = message ?? copy.demoQuery;
 
   // Location selector handler
   function handlePresetLocation(preset: { name: string; lat: number; lon: number }) {
     setCurrentLocation({ lat: preset.lat, lon: preset.lon });
-    const newMsg = `I am departing from ${preset.name}. Where should I fish and what is the safest route?`;
+    const newMsg = copy.portQuery(preset.name);
     setMessage(newMsg);
     void submit(newMsg, scenario, false, { lat: preset.lat, lon: preset.lon });
   }
@@ -141,7 +232,7 @@ export function Dashboard({
   // Live GPS tracking
   function toggleGps() {
     if (!navigator.geolocation) {
-      setNotice('Geolocation is not supported by your browser.');
+      setNotice(copy.geolocationUnavailable);
       return;
     }
     if (gpsActive) {
@@ -153,20 +244,20 @@ export function Dashboard({
       (pos) => {
         const userLoc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         setCurrentLocation(userLoc);
-        const msg = `What is the marine risk and nearest safe fishing zone from my current GPS position (${userLoc.lat.toFixed(3)}, ${userLoc.lon.toFixed(3)})?`;
+        const msg = copy.gpsQuery(userLoc.lat.toFixed(3), userLoc.lon.toFixed(3));
         setMessage(msg);
         void submit(msg, scenario, false, userLoc);
       },
       (err) => {
         setGpsActive(false);
-        setNotice(`GPS error: ${err.message}`);
+        setNotice(language === 'hi' ? copy.gpsError : `${copy.gpsError}: ${err.message}`);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
   async function submit(
-    query = message,
+    query = currentMessage,
     nextScenario = scenario,
     reset = false,
     queryLocation = currentLocation,
@@ -193,14 +284,14 @@ export function Dashboard({
         body: JSON.stringify({
           message: query,
           scenario: nextScenario,
-          language: 'en',
+          language,
           context: reset ? undefined : context,
         }),
         signal: controller.current.signal,
       });
       const body: ChatResponse = await response.json();
       if (!response.ok || body.status === 'ERROR')
-        throw new Error('answer' in body ? body.answer : 'Analysis failed');
+        throw new Error('answer' in body ? body.answer : copy.analysisFailedShort);
       if (body.status === 'COMPLETE') {
         setDecision(body.decision);
         setContext(body.context);
@@ -222,7 +313,7 @@ export function Dashboard({
         const agentChat = await marineApi.chat({
           message: query,
           location: queryLocation,
-          language: 'en',
+          language,
           session_id: reset ? undefined : sessionId.current,
         }, controller.current.signal);
         sessionId.current = agentChat.session_id;
@@ -243,16 +334,18 @@ export function Dashboard({
           setGeofenceStatus(agentChat.geofence);
         }
       } catch (error) {
-        setBackendAnswer('Backend analysis unavailable. The scenario metrics below remain a demo replay.');
-        setNotice(error instanceof Error ? error.message : 'Backend analysis unavailable');
+        setBackendAnswer(copy.backendUnavailable);
+        setNotice(language === 'hi' ? copy.backendUnavailableShort : error instanceof Error ? error.message : copy.backendUnavailableShort);
       }
     } catch (error) {
       setNotice(
         error instanceof Error && error.name === 'AbortError'
-          ? 'Analysis timed out. Retry the request.'
-          : error instanceof Error
+          ? copy.timeout
+          : language === 'hi'
+            ? copy.analysisFailed
+            : error instanceof Error
             ? error.message
-            : 'The analysis could not be completed.',
+            : copy.analysisFailed,
       );
     } finally {
       clearTimeout(timeout);
@@ -261,12 +354,12 @@ export function Dashboard({
   }
   function scenarioChanged(value: Scenario) {
     setScenario(value);
-    void submit(DEMO_QUERY, value, true);
+    void submit(copy.demoQuery, value, true);
   }
   return (
-    <div className="app-shell">
+    <div className={`app-shell${embedded ? ' app-shell--embedded' : ''}`}>
       <a className="skip-link" href="#query">
-        Skip to trip planner
+        {copy.skip}
       </a>
       <header className="topbar">
         <Link
@@ -315,12 +408,12 @@ export function Dashboard({
       <main>
         <div className="workspace-heading">
           <div>
-            <span className="eyebrow">OCEAN CONTEXT. INFORMED DECISIONS.</span>
-            <h1>Your next voyage, reasoned.</h1>
+            <span className="eyebrow">{copy.headingEyebrow}</span>
+            <h1>{copy.heading}</h1>
           </div>
           <div className="scenario-control">
             <SlidersHorizontal size={15} />
-            <label htmlFor="scenario">Scenario</label>
+            <label htmlFor="scenario">{copy.scenario}</label>
             <select
               id="scenario"
               value={scenario}
@@ -329,17 +422,17 @@ export function Dashboard({
             >
               {SCENARIOS.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.label}
+                  {s.label[language]}
                 </option>
               ))}
             </select>
             <button
               className="icon-button"
-              aria-label="Reset demo"
+              aria-label={copy.reset}
               disabled={pending}
               onClick={() => {
                 setScenario('normal');
-                void submit(DEMO_QUERY, 'normal', true);
+                void submit(copy.demoQuery, 'normal', true);
               }}
             >
               <RotateCcw size={15} />
@@ -349,16 +442,16 @@ export function Dashboard({
         <div className="intelligence-workspace">
           <aside
             className="conversation-panel"
-            aria-label="Trip planner and agent execution"
+            aria-label={copy.plannerLabel}
           >
             <div className="panel-title">
-              <span className="eyebrow">TRIP PLANNER</span>
+              <span className="eyebrow">{copy.planner}</span>
               <span className="small-tag">01 / NAGAPATTINAM</span>
             </div>
             {/* Preset Coastal Ports & GPS Selector */}
             <div className="flex flex-wrap items-center gap-1.5 mb-2 text-xs">
               <span className="text-[10px] uppercase font-bold text-white/40 tracking-wider">
-                Port:
+                {copy.port}
               </span>
               {PRESET_LOCATIONS.map((p) => (
                 <button
@@ -384,10 +477,10 @@ export function Dashboard({
                     ? 'bg-emerald-500 text-white font-semibold animate-pulse'
                     : 'bg-white/5 hover:bg-white/10 text-white/70'
                 }`}
-                title="Detect live GPS position"
+                title={copy.gpsTitle}
               >
                 <MapPin size={11} />
-                {gpsActive ? 'GPS Active' : 'Live GPS'}
+                {gpsActive ? copy.gpsActive : copy.liveGps}
               </button>
             </div>
 
@@ -399,19 +492,20 @@ export function Dashboard({
               className="query-form"
             >
               <div className="flex items-center justify-between mb-1">
-                <label htmlFor="query">Where are we heading?</label>
+                <label htmlFor="query">{copy.destination}</label>
                 <VoiceChatControl
                   onTranscript={(text) => {
                     setMessage(text);
                     void submit(text);
                   }}
+                  languageHint={language}
                   disabled={pending}
                 />
               </div>
               <textarea
                 id="query"
                 maxLength={2000}
-                value={message}
+                value={currentMessage}
                 disabled={pending}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
@@ -419,16 +513,16 @@ export function Dashboard({
               <button
                 className="primary-button"
                 type="submit"
-                disabled={pending || !message.trim()}
+                disabled={pending || !currentMessage.trim()}
               >
                 {pending ? (
                   <>
                     <LoaderCircle className="spinner" size={16} />
-                    Analyzing evidence…
+                    {copy.analyzing}
                   </>
                 ) : (
                   <>
-                    Run analysis
+                    {copy.run}
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -437,16 +531,16 @@ export function Dashboard({
             <div className="query-chips">
               <button
                 disabled={pending}
-                onClick={() => void submit('Why not the nearest fishing zone?')}
+                onClick={() => void submit(copy.nearestQuery)}
               >
-                Why not the nearest?
+                {copy.nearest}
                 <ArrowUpRight size={12} />
               </button>
               <button
                 disabled={pending}
-                onClick={() => void submit('What if I leave 3 hours later?')}
+                onClick={() => void submit(copy.laterQuery)}
               >
-                Leave 3 hours later
+                {copy.later}
                 <ArrowUpRight size={12} />
               </button>
             </div>
@@ -454,7 +548,7 @@ export function Dashboard({
               <div role="alert" className="request-notice">
                 {notice}
                 <span>
-                  Marine data warnings apply to the backend answer. Scenario metrics remain a labelled replay.
+                  {copy.warningNote}
                 </span>
               </div>
             )}
@@ -462,24 +556,26 @@ export function Dashboard({
               <div>
                 <MapPin size={15} />
                 <span>
-                  Departure<strong>{decision.plan.origin.name}</strong>
+                  {copy.departure}<strong>{decision.plan.origin.name}</strong>
                 </span>
               </div>
               <div>
                 <Clock3 size={15} />
                 <span>
-                  {localDate(decision.plan.departureTime)}
+                  {language === 'hi'
+                    ? new Intl.DateTimeFormat('hi-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(decision.plan.departureTime))
+                    : localDate(decision.plan.departureTime)}
                   <strong>{localTime(decision.plan.departureTime)} IST</strong>
                 </span>
               </div>
             </div>
             <div className="trace-heading">
-              <h2>Reasoning trail</h2>
+              <h2>{copy.reasoning}</h2>
               <span>
-                {pending ? 'RUNNING' : Math.round(elapsed) + ' ms · tool time'}
+                {pending ? copy.running : `${Math.round(elapsed)} ${copy.toolTime}`}
               </span>
             </div>
-            <ol className="agent-trace" aria-label="Completed tool execution">
+            <ol className="agent-trace" aria-label={copy.traceLabel}>
               {decision.agentTrace.map((agent, index) => (
                 <li key={agent.id}>
                   <span
@@ -496,7 +592,7 @@ export function Dashboard({
                   </span>
                   <details>
                     <summary>
-                      <span>{agent.name}</span>
+                      <span>{language === 'hi' ? (AGENT_NAMES_HI[agent.name] ?? agent.name) : agent.name}</span>
                       <small>{String(index + 1).padStart(2, '0')}</small>
                     </summary>
                     <p>{agent.summary}</p>
@@ -510,17 +606,17 @@ export function Dashboard({
             </ol>
             <div className="trace-footnote">
               <span className="status-dot" />
-              Actual service calls · Deterministic rules
+              {copy.traceFootnote}
             </div>
           </aside>
           <div className="map-workspace relative">
             {geofenceStatus && (
               <div className="absolute top-4 left-4 right-4 z-20">
-                <GeofenceAlertBanner status={geofenceStatus} />
+                <GeofenceAlertBanner status={geofenceStatus} language={language} />
               </div>
             )}
-            <MarineMap decision={decision} onSelectZone={setSelectedZone} currentLocation={currentLocation} onLocation={setCurrentLocation} marineLayer={marineLayer} mapActions={mapActions} />
-            <MapLegend />
+            <MarineMap decision={decision} onSelectZone={setSelectedZone} currentLocation={currentLocation} onLocation={setCurrentLocation} marineLayer={marineLayer} mapActions={mapActions} language={language} />
+            <MapLegend language={language} />
             <div
               className={
                 'map-recommendation ' + (!isSuccess ? 'no-recommendation' : '')
@@ -624,7 +720,7 @@ export function Dashboard({
               <p className="answer font-medium" aria-live="polite">
                 {backendAnswer || decision.answer}
               </p>
-              <AudioPlayer text={backendAnswer || decision.answer} language="en" />
+              <AudioPlayer text={backendAnswer || decision.answer} language={language} />
             </div>
 
             {/* Part 4 Deterministic Safety Assessment Card */}
@@ -808,10 +904,10 @@ export function Dashboard({
         <section className="my-6">
           <SimulationWidget
             origin={currentLocation}
-            onVesselMove={(pos, heading) => {
+            onVesselMove={(pos) => {
               setCurrentLocation(pos);
             }}
-            onRouteRecalculated={(newRoute) => {
+            onRouteRecalculated={() => {
               void submit(`Dynamic hazard encountered! Route recalculated to avoid hazard.`);
             }}
           />
@@ -914,7 +1010,7 @@ export function Dashboard({
             Official Marine Safety & Decision-Support Notice
           </p>
           <p>
-            SamudraAI / ORCA is an intelligent decision-support prototype. Official INCOIS / IMD marine advisories, port alerts, and maritime authority instructions take absolute precedence. Not intended as sole means of nautical navigation.
+            ORCA is an intelligent decision-support prototype. Official INCOIS / IMD marine advisories, port alerts, and maritime authority instructions take absolute precedence. Not intended as the sole means of nautical navigation.
           </p>
         </div>
 
@@ -934,7 +1030,7 @@ export function Dashboard({
           <summary>Query used for the displayed result</summary>
           <p>{lastQuery}</p>
           <p>
-            {SCENARIOS.find((s) => s.id === decision.scenario)?.description}
+            {SCENARIOS.find((s) => s.id === decision.scenario)?.description[language]}
           </p>
         </details>
       </main>

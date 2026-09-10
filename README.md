@@ -11,14 +11,17 @@ SIH problem statement **26176**. This repository implements the foundation and f
 
 ## Run locally
 
-Requires Node.js 20.9+ and npm. Node 22 LTS is a suitable baseline.
+Requires Node.js 20.9+, npm, and Python 3.12+.
 
 ~~~powershell
 npm ci
-npm run dev
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.lock.txt
+$env:DEMO_MODE='true'
+.\.venv\Scripts\python.exe -m backend.run
 ~~~
 
-Open [ORCA on localhost](http://127.0.0.1:3000), or run **launch-orca.bat**.
+In a second terminal, run `npm run dev`, then open [ORCA on localhost](http://127.0.0.1:3000). The demo path needs no API key or database. PostgreSQL/PostGIS is optional for persistence and its tests.
 
 For a production build:
 
@@ -27,9 +30,9 @@ npm run build
 npm start
 ~~~
 
-The page computes the flagship scenario on the server when opened. Submit another query or change the scenario to execute the pipeline again. No API keys, database, Python service, external tiles or external fonts are required. Fonts are served locally; the interactive map requires browser WebGL. If WebGL is unavailable, the decision remains accessible in the tables.
+The page computes the flagship replay when opened. New natural-language queries use the FastAPI multi-agent backend through the Next.js `/api/v1` proxy. Fonts are served locally; the interactive map requires browser WebGL. If WebGL is unavailable, the decision remains accessible in the tables.
 
-Optional: copy .env.example to apps/web/.env.local. Setting DEMO_MODE=false disables fixture recommendations; no live fallback is silently enabled.
+For persistent local storage and provider configuration, follow [backend setup](backend/README.md). Setting `DEMO_MODE=false` disables fixture recommendations; no live fallback is silently enabled.
 
 ## Try the vertical slice
 
@@ -88,7 +91,7 @@ Restart the server after editing fixtures; they are validated and loaded once pe
 - POST /api/plan: validates the same request shape and returns structured intent or clarification.
 - GET /api/health: actual provider modes, fixture counts and unconfigured components.
 
-The chat endpoint returns COMPLETE with a DecisionResponse, CLARIFICATION, UNSUPPORTED, or ERROR. No route is selected when evidence or hard gates fail. No auth, persisted conversation, live marine API or independent geo server is implemented in this milestone.
+The legacy `/api/chat` endpoint returns COMPLETE, CLARIFICATION, UNSUPPORTED, or ERROR. The `/api/v1` FastAPI endpoints provide agent chat, optional persisted conversation, live marine adapters, safety scoring, PFZ ranking, and demo-only routing/geofencing. No route is selected when evidence or hard gates fail. Authentication and rate limiting are deployment responsibilities.
 
 ## Part 2 — Agentic AI & Voice Intelligence
 
