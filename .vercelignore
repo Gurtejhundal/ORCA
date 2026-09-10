@@ -1,5 +1,7 @@
 .playwright-cli/
 output/
+.vercel/
+**/.next/
 .venv/
 **/__pycache__/
 **/.pytest_cache/
