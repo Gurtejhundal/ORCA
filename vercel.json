@@ -6,8 +6,8 @@
       "framework": "nextjs"
     },
     "backend": {
-      "root": ".",
-      "entrypoint": "backend.server:app",
+      "root": "backend/",
+      "entrypoint": "server:app",
       "framework": "fastapi"
     }
   },

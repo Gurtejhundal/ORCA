@@ -1,6 +1,10 @@
 import importlib
 import sys
 from pathlib import Path
+from types import ModuleType
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+package_root = Path(__file__).resolve().parent
+package = sys.modules.setdefault('backend', ModuleType('backend'))
+package.__path__ = [str(package_root)]
+
 app = importlib.import_module('backend.main').app
