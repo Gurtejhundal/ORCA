@@ -5,14 +5,12 @@ import { OceanRippleVideo } from './ocean-ripple-video';
 import { OrcaToolRail, type OrcaToolId } from './orca-tool-rail';
 
 export function OrcaHero({
-  onNavigate,
   language,
   onSubmitQuery,
   activeTool,
   hasHistory,
   onSelectTool,
 }: {
-  onNavigate?: (view: string) => void;
   language: AppLanguage;
   onSubmitQuery: (query: string) => Promise<void>;
   activeTool: OrcaToolId | null;
@@ -24,9 +22,6 @@ export function OrcaHero({
       className="orca-hero"
       id="home"
       aria-label={language === 'hi' ? 'समुद्र के बारे में ORCA से पूछें' : 'Ask ORCA about the sea'}
-      onWheel={(event) => {
-        if (event.deltaY < 0 && hasHistory) onNavigate?.('chat');
-      }}
     >
       <OceanRippleVideo ariaLabel={language === 'hi' ? 'समुद्र में चलती मछली पकड़ने की नाव' : 'Fishing boat moving through the ocean'} />
       <div className="orca-hero__legibility" aria-hidden="true" />

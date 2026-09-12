@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, type WheelEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { ConversationContext, DecisionResponse } from '@orca/contracts';
 import dynamic from 'next/dynamic';
 import {
@@ -55,7 +55,6 @@ const CHAT_COPY = {
     recent: 'Recent conversation',
     exchange: 'exchange',
     exchanges: 'exchanges',
-    scrollHint: 'Scroll down past the latest answer to return to the ocean.',
     confidence: 'confidence',
     noSources: 'No sources returned',
     readAloud: 'Read answer aloud',
@@ -76,7 +75,6 @@ const CHAT_COPY = {
     recent: 'हाल की बातचीत',
     exchange: 'सवाल',
     exchanges: 'सवाल',
-    scrollHint: 'समुद्र पर लौटने के लिए नवीनतम उत्तर के बाद नीचे स्क्रॉल करें।',
     confidence: 'विश्वसनीयता',
     noSources: 'कोई स्रोत नहीं मिला',
     readAloud: 'उत्तर सुनाएँ',
@@ -152,27 +150,20 @@ function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; 
   );
 }
 
-function ChatView({ turns, pending, language, onSubmit, onOpenMap, onReturnHome }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; onSubmit: (query: string) => Promise<void>; onOpenMap: () => void; onReturnHome: () => void }) {
+function ChatView({ turns, pending, language, onSubmit, onOpenMap }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; onSubmit: (query: string) => Promise<void>; onOpenMap: () => void }) {
   const endRef = useRef<HTMLDivElement>(null);
   const copy = CHAT_COPY[language];
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [turns, pending]);
 
-  const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
-    const thread = event.currentTarget;
-    const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight <= 2;
-    if (event.deltaY > 0 && atBottom) onReturnHome();
-  };
-
   const exchangeLabel = turns.length === 1 ? copy.exchange : copy.exchanges;
   return (
     <div className="chat-workspace">
       <div className="chat-session-bar">
         <span><History size={15} /><span><strong>{copy.recent}</strong><small>{turns.length} {exchangeLabel}</small></span></span>
-        <small>{copy.scrollHint}</small>
       </div>
-      <div className="chat-thread" aria-live="polite" onWheel={handleWheel}>
+      <div className="chat-thread" aria-live="polite">
         {turns.length === 0 && (
           <div className="chat-empty">
             <span className="view-eyebrow">{copy.ready}</span>
@@ -384,7 +375,6 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
       <a className="skip-link" href="#main-content">{language === 'hi' ? 'मुख्य सामग्री पर जाएँ' : 'Skip to main content'}</a>
       <OrcaNav language={language} activeView={view} onNavigate={navigate} onLanguageChange={setLanguage} />
       <OrcaHero
-        onNavigate={navigate}
         language={language}
         onSubmitQuery={runQuery}
         activeTool={activeTool}
@@ -396,7 +386,7 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
         <section className={`experience-overlay experience-overlay--${view}`} aria-label={language === 'hi' ? 'ORCA दृश्य' : `${view} view`}>
           <div className="experience-page">
             {view === 'chat' ? (
-              <ChatView turns={turns} pending={pending} language={language} onSubmit={runQuery} onOpenMap={() => openView('workspace')} onReturnHome={closeView} />
+              <ChatView turns={turns} pending={pending} language={language} onSubmit={runQuery} onOpenMap={() => openView('workspace')} />
             ) : view === 'workspace' ? (
               initialDecision && initialContext ? <Dashboard initialDecision={initialDecision} initialContext={initialContext} embedded language={language} /> : <div className="workspace-unavailable" role="alert"><Map size={24} /><h1>{language === 'hi' ? 'कार्यस्थल डेटा उपलब्ध नहीं है।' : 'Workspace data is unavailable.'}</h1><p>{language === 'hi' ? 'ORCA के निर्णय इंजन से दोबारा जुड़ने तक बातचीत उपलब्ध रहेगी।' : 'The conversation remains available while ORCA reconnects to the decision engine.'}</p></div>
             ) : (
