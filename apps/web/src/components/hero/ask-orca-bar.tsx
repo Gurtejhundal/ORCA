@@ -209,7 +209,7 @@ export function AskOrcaBar({
   return (
     <section className="ask-orca" id="ask-orca" aria-label={copy.label}>
       {voiceStatus && (
-        <div className="ask-orca__notice" role="status" style={{ opacity: 0.9 }}>
+        <div className="ask-orca__notice" role="status">
           {voiceStatus}
         </div>
       )}
@@ -241,7 +241,6 @@ export function AskOrcaBar({
             type="button"
             aria-label={listening ? copy.stopVoice : copy.startVoice}
             aria-pressed={listening}
-            style={listening ? { color: '#ff6b6b', animation: 'pulse 1.5s infinite' } : {}}
             onClick={toggleVoice}
           >
             <Mic size={18} aria-hidden="true" />

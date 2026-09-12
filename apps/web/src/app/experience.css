@@ -30,12 +30,9 @@
 }
 
 .orca-experience--open .orca-nav,
-.orca-experience--open .orca-tool-rail {
+.orca-experience--open .orca-tool-rail,
+.orca-experience--open .orca-tool-drawer {
   z-index: 30;
-}
-
-.orca-experience--open .language-switch--hero {
-  z-index: 31;
 }
 
 .experience-overlay {
@@ -331,6 +328,27 @@
   text-align: center;
 }
 
+.workspace-skeleton {
+  display: grid;
+  grid-template-columns: minmax(220px, .36fr) minmax(0, 1fr);
+  grid-template-rows: 68px 1fr;
+  gap: 14px;
+  height: 100%;
+  padding: 18px;
+}
+
+.workspace-skeleton i {
+  border: 1px solid rgba(225, 247, 242, .1);
+  border-radius: 12px;
+  background: linear-gradient(100deg, rgba(255, 255, 255, .035) 20%, rgba(255, 255, 255, .075) 40%, rgba(255, 255, 255, .035) 60%);
+  background-size: 220% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+.workspace-skeleton i:first-child { grid-column: 1 / -1; }
+.workspace-skeleton i:nth-child(2) { grid-row: 2; }
+.workspace-skeleton i:nth-child(3) { grid-row: 2; }
+
 .workspace-unavailable svg { margin: auto; color: #8ad7d8; }
 .workspace-unavailable h1 { margin: 16px 0 8px; font-size: 26px; font-weight: 500; }
 .workspace-unavailable p { margin: 0; color: #b8cacb; }
@@ -474,6 +492,7 @@
 @keyframes overlay-in { from { opacity: 0; transform: translateY(10px); } }
 @keyframes answer-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes chat-pulse { to { opacity: .25; transform: translateY(-2px); } }
+@keyframes skeleton-sweep { to { background-position: -120% 0; } }
 
 @media (max-width: 760px) {
   .experience-overlay {
@@ -505,6 +524,10 @@
   .chat-composer { margin: 0 0 12px; }
 
   .experience-overlay--evidence .experience-page { padding: 28px 20px; }
+  .workspace-skeleton { grid-template-columns: 1fr; grid-template-rows: 54px 140px 1fr; padding: 12px; }
+  .workspace-skeleton i:first-child { grid-column: auto; }
+  .workspace-skeleton i:nth-child(2),
+  .workspace-skeleton i:nth-child(3) { grid-row: auto; }
   .evidence-layout { grid-template-columns: 1fr; gap: 30px; margin-top: 34px; }
   .evidence-pipeline { padding: 0; border: 0; }
   .capability-list article { grid-template-columns: 22px 28px minmax(0, 1fr); gap: 12px; padding: 10px 0; }
@@ -515,6 +538,7 @@
   .experience-overlay,
   .chat-answer,
   .chat-thinking i,
+  .workspace-skeleton i,
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;

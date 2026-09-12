@@ -18,8 +18,10 @@ import {
 } from 'lucide-react';
 import { marineApi, type ChatResponsePayload } from '@/services/marine-api';
 import { OrcaHero } from './hero/orca-hero';
+import { OrcaNav } from './hero/orca-nav';
 import type { AppLanguage } from './hero/ask-orca-bar';
 import type { OrcaToolId } from './hero/orca-tool-rail';
+import { LandingSections } from './landing-sections';
 
 type View = 'chat' | 'workspace' | 'evidence';
 type ChatTurn = {
@@ -32,7 +34,7 @@ type ChatTurn = {
 };
 
 const Dashboard = dynamic(() => import('./dashboard').then((module) => module.Dashboard), {
-  loading: () => <div className="workspace-unavailable" aria-hidden="true"><Waves size={24} /></div>,
+  loading: () => <div className="workspace-skeleton" role="status" aria-label="Loading marine workspace"><i /><i /><i /></div>,
 });
 
 const CHAT_STORAGE_KEY = 'orca-recent-chat-v1';
@@ -322,6 +324,7 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
 
   const transitionTo = (next: View | null) => {
     if (view === next) return;
+    if (next) document.querySelector<HTMLDetailsElement>('.orca-tool-drawer')?.removeAttribute('open');
     const update = () => setView(next);
     const start = (document as ViewTransitionDocument).startViewTransition;
     if (start && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) start.call(document, update);
@@ -378,16 +381,17 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
 
   return (
     <main className={view ? `orca-experience orca-experience--open orca-experience--${view}` : 'orca-experience'}>
+      <a className="skip-link" href="#main-content">{language === 'hi' ? 'मुख्य सामग्री पर जाएँ' : 'Skip to main content'}</a>
+      <OrcaNav language={language} activeView={view} onNavigate={navigate} onLanguageChange={setLanguage} />
       <OrcaHero
         onNavigate={navigate}
         language={language}
-        onLanguageChange={setLanguage}
         onSubmitQuery={runQuery}
-        activeView={view}
         activeTool={activeTool}
         hasHistory={turns.length > 0}
         onSelectTool={selectTool}
       />
+      <LandingSections language={language} onOpenWorkspace={() => openView('workspace')} onOpenEvidence={() => openView('evidence')} />
       {view && (
         <section className={`experience-overlay experience-overlay--${view}`} aria-label={language === 'hi' ? 'ORCA दृश्य' : `${view} view`}>
           <div className="experience-page">

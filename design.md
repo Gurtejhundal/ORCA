@@ -11,7 +11,7 @@
 
 ## 2. Design Objective
 
-ORCA must feel like one calm marine-intelligence application. The ocean remains visible as product context while navigation, conversation, maps, and evidence share one persistent shell. Changing tasks must never feel like opening another website.
+ORCA must feel like one calm marine-intelligence product from the cinematic ocean through the technical evidence story. The landing page explains the product in a continuous deep-marine progression, while conversation, maps, and evidence remain in one persistent application shell.
 
 ## 3. Chosen Direction
 
@@ -25,10 +25,10 @@ ORCA must feel like one calm marine-intelligence application. The ocean remains 
 
 ## 4. Design Principles
 
-1. One shell, three modes: Ask, Workspace, Evidence.
-2. Conversation is the entry point; the map is the working surface.
-3. Persistent controls do not move or change material between modes.
-4. Evidence and uncertainty stay visible without dashboard clutter.
+1. Preserve the ocean and boat as the visual anchor; UI stays subordinate.
+2. One public story, three product modes: Ask, Workspace, Evidence.
+3. Conversation is the entry point; the map is the working surface.
+4. Evidence and uncertainty remain visible without card-wall clutter.
 5. Motion explains continuity and never hijacks ordinary scrolling.
 
 ## 5. Color System
@@ -63,7 +63,7 @@ ORCA must feel like one calm marine-intelligence application. The ocean remains 
 
 - Base unit: 4px
 - Scale: 4, 8, 12, 16, 24, 32, 48, 64
-- Desktop shell: 78px top navigation, 102px left tool allowance
+- Desktop shell: 54px floating navigation with 18px top offset; 102px left tool allowance
 - Maximum reading width: 760px
 - Maximum workspace width: 1600px
 - Breakpoints: 600px, 760px, 1024px, 1440px
@@ -77,7 +77,7 @@ ORCA must feel like one calm marine-intelligence application. The ocean remains 
 - Large radius: 22px
 - Pills: language switch, compact status, and suggestions only
 - Shadows: quiet dark separation; no glow
-- Blur: 24–30px for nav, rail, search, and composer; avoid full-page backdrop blur when an image filter works
+- Blur: 16–24px for nav, rail, search, and composer; never blur text or use milky white overlays
 
 ## 9. Iconography and Imagery
 
@@ -88,8 +88,8 @@ ORCA must feel like one calm marine-intelligence application. The ocean remains 
 
 ## 10. Core Components
 
-- Navigation: fixed, full-width blurred marine bar; active mode is explicit
-- Tool rail: persistent blurred marine control strip; tools reveal a mode in the same shell
+- Navigation: thin floating marine-glass rail with ORCA identity, Home, Capabilities, Use Cases, Data Sources, About, and one Open Workspace action
+- Tool rail: compact marine instrument strip; mobile uses one visible tools disclosure instead of squeezed icons
 - Search/composer: same material as navigation and rail
 - Chat: one continuous scroll with earlier turns above and a visible recent-history entry point
 - Workspace: embedded trip planner and map; no second product header
@@ -120,12 +120,17 @@ ORCA must feel like one calm marine-intelligence application. The ocean remains 
 
 - Desktop: top navigation, left tool rail, centered chat, two-column workspace
 - Tablet: compact rail and narrower trip planner
-- Mobile: top bar plus horizontal tool dock; workspace becomes planner above map; chat uses full available width
+- Mobile: ORCA brand, language, and menu in the top rail; tools collapse into a compact disclosure; workspace becomes planner above map
 - No horizontal page scrolling; only intentional local table or tab overflow
 
 ## 14. Page Rules
 
-- Home: ocean, persistent controls, one conversational input
+- Home: preserved ocean/video composition, persistent glass controls, one conversational input, then a continuous product story
+- Capabilities: four alternating editorial rows for fishing, safety, route, and conversational intelligence
+- How it works: Ask → Understand → Collect → Analyse → Compare → Recommend
+- Use cases: explicit PFZ comparison showing why nearest does not always mean best
+- Data sources: provider-to-collector-to-normalization-to-freshness-to-decision pipeline
+- About: traceable evidence receipt, data-state labels, and safety-before-ranking rule
 - Chat: same ocean held static and softened; history scrolls inside one thread
 - Workspace: existing analysis and marine-map logic embedded below persistent controls
 - Evidence: one consolidated technical view, not separate marketing pages
@@ -145,5 +150,4 @@ ORCA must feel like one calm marine-intelligence application. The ocean remains 
 - Components: `apps/web/src/components`
 - Icons: `lucide-react`
 - Motion: native View Transitions with a CSS fallback and reduced-motion support
-- Validation: typecheck, production build, keyboard flow, console, and 390/768/1440px browser checks
-
+- Validation: typecheck, production build, keyboard flow, console, and 360/390/430/768/1024/1366/1440/1920px browser checks

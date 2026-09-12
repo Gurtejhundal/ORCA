@@ -1,6 +1,7 @@
 import { OrcaExperience } from '@/components/orca-experience';
 import { runQuery } from '@orca/engine';
 import './experience.css';
+import './landing.css';
 import './dashboard/dashboard.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
