@@ -101,6 +101,74 @@ def test_mock_intent_recognizes_natural_fishing_question():
     assert result.intent == 'nearest_safe_pfz'
 
 
+def test_chat_separates_conversation_from_marine_analysis(client):
+    import asyncio
+    import json
+    from backend.agents.schemas import IntentOutput
+    from backend.conversation.context import LocationState
+    from backend.llm.base import LLMProvider
+
+    orchestrator = client.app.state.orchestrator
+    orchestrator.execute_task_graph = AsyncMock(side_effect=AssertionError('Conversation must not fetch marine data'))
+    session_id = None
+    for message, language, expected in [
+        ('hello', 'en', 'Hello!'),
+        ('hey ORCA!', 'en', 'Hello!'),
+        ('How are you?', 'en', 'ready to help'),
+        ('Who are you?', 'en', 'marine intelligence assistant'),
+        ('What is PFZ?', 'en', 'Potential Fishing Zone'),
+        ('thanks', 'en', "You're welcome"),
+        ('नमस्ते', 'hi', 'नमस्ते'),
+        ('PFZ क्या है?', 'hi', 'संभावित मछली क्षेत्र'),
+        ('What is the capital of France?', 'en', "General AI answers aren't connected"),
+    ]:
+        response = client.post('/api/v1/chat', json={'message': message, 'language': language, 'session_id': session_id})
+        assert response.status_code == 200, response.text
+        result = response.json()
+        session_id = session_id or result['session_id']
+        assert result['session_id'] == session_id
+        assert result['intent'] == 'general_conversation' and result['status'] == 'success'
+        assert expected in result['answer']
+        assert result['language'] == language
+        assert not result['evidence'] and not result['sources'] and not result['map_actions']
+        assert not result['risk'] and not result['route'] and not result['recommended_pfz']
+    orchestrator.execute_task_graph.assert_not_called()
+
+    # An existing marine location/selection must survive small talk.
+    context = asyncio.run(orchestrator.memory.get_context(session_id))
+    context.current_location = LocationState(lat=10.767, lon=79.872, name='Nagapattinam')
+    current_time = context.requested_time
+    client.post('/api/v1/chat', json={'message': 'hi', 'session_id': session_id})
+    assert context.current_location.name == 'Nagapattinam' and context.requested_time == current_time
+    assert len(context.metadata['recent_conversation']) == 6
+    for question, expected in [
+        ('Hello, is it safe to fish near Kochi tomorrow?', 'marine_safety'),
+        ('What is the wave height near Nagapattinam?', 'ocean_conditions'),
+        ('What are the hazards right now?', 'hazard_check'),
+        ('Show the current wave height', 'ocean_conditions'),
+        ('Why not the second one?', 'follow_up'),
+    ]:
+        intent = asyncio.run(orchestrator.intent_agent.detect_intent(question, context.model_dump(), 'en'))
+        assert intent.intent == expected and intent.required_capabilities
+
+    # The same endpoint uses an existing real provider for open-ended answers.
+    llm = AsyncMock(spec=LLMProvider)
+    llm.generate_structured.return_value = IntentOutput(intent='general_conversation')
+    llm.generate_text.return_value = 'Paris is the capital of France.'
+    orchestrator.intent_agent.llm = orchestrator.explanation_agent.llm = llm
+    response = client.post('/api/v1/chat', json={'message': 'What is the capital of France?', 'session_id': session_id})
+    assert response.json()['answer'] == 'Paris is the capital of France.'
+    prompt = json.loads(llm.generate_text.call_args.kwargs['prompt'])
+    assert len(prompt['recent_conversation']) == 6 and prompt['message'] == 'What is the capital of France?'
+    assert 'Never invent current weather' in llm.generate_text.call_args.kwargs['system_prompt']
+
+    llm.generate_structured.side_effect = RuntimeError('provider unavailable')
+    llm.generate_text.side_effect = RuntimeError('provider unavailable')
+    response = client.post('/api/v1/chat', json={'message': 'How are you?', 'session_id': session_id})
+    assert response.status_code == 200 and 'ready to help' in response.json()['answer']
+    assert response.json()['intent'] == 'general_conversation'
+
+
 def test_zero_longitude_gps_is_preserved():
     location = resolve_location('conditions', explicit_location={'lat': 10, 'lon': 0})
     assert location and location.lon == 0

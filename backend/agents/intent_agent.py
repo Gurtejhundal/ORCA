@@ -1,4 +1,5 @@
 import logging
+import re
 from backend.agents.schemas import IntentOutput
 from backend.llm.base import LLMProvider
 from backend.llm.prompts import INTENT_SYSTEM_PROMPT
@@ -22,6 +23,8 @@ class IntentAgent:
         clean_query = query.replace("```", "").strip()
         if len(clean_query) > 1000:
             clean_query = clean_query[:1000]
+        if re.fullmatch(r'(hello|hi|hey|hii+|good (morning|afternoon|evening)|namaste|नमस्ते|हेलो)(?:\s+(orca|there|bro))?[\s!?.।]*', clean_query, re.I):
+            return IntentOutput(intent='general_conversation', language=language_hint or 'en')
 
         ctx_str = ""
         if context_dict:
@@ -34,7 +37,7 @@ class IntentAgent:
 Language Hint: {language_hint or 'auto'}
 
 Extract:
-1. Marine intent (one of the 15 supported intents)
+1. Intent (marine analysis or general_conversation)
 2. ISO 639-1 language code (e.g. 'hi', 'en', 'ta', 'te', etc.)
 3. Named coastal location (name only, lat/lon should be null if not explicitly in text)
 4. Time expression verbatim
@@ -51,13 +54,7 @@ Extract:
             )
         except Exception as exc:
             logger.warning("intent_extraction_llm_failed: %s; falling back", exc)
-            # Fallback intent
-            return IntentOutput(
-                intent='marine_safety',
-                language=language_hint or 'en',
-                location={'name': None, 'lat': None, 'lon': None},
-                time_expression=None,
-                entities={},
-                required_capabilities=['weather', 'ocean', 'hazards'],
-                confidence=0.8,
+            from backend.llm.provider import MockLLMProvider
+            return await MockLLMProvider().generate_structured(
+                prompt=prompt, schema=IntentOutput,
             )

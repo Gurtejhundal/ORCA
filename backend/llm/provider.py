@@ -51,8 +51,8 @@ class MockLLMProvider(LLMProvider):
             match = re.search(r'Analyze this user query:\s*"(.*?)"(?:\n|$)', prompt, re.S)
             prompt = match.group(1) if match else prompt
             lower_prompt = prompt.lower()
-            intent = 'general_marine_question'
-            required_caps = ['ocean', 'weather']
+            intent = 'general_conversation'
+            required_caps = []
             location_name = None
             time_expr = None
             activity = None
@@ -95,7 +95,10 @@ class MockLLMProvider(LLMProvider):
                 activity = 'fishing'
 
             # Detect intents
-            if any(k in lower_prompt for k in ['boundary', 'geofence', 'restricted', 'सीमा']):
+            if (re.fullmatch(r'(?:what (?:is|are)|explain|define)\s+(?:a |an |the )?(?:pfzs?|potential fishing zones?|sst|sea surface temperature|chlorophyll|swell|wave height|ocean currents?)[\s?!.]*', lower_prompt)
+                    or re.fullmatch(r'(?:pfz|पीएफजेड)\s+क्या (?:है|हैं)[\s?!.।]*', lower_prompt)):
+                pass  # Definitions need conversation, not observations at invented coordinates.
+            elif any(k in lower_prompt for k in ['boundary', 'geofence', 'restricted', 'सीमा']):
                 intent = 'geofence_question'
                 required_caps = ['geospatial', 'hazards']
             elif any(k in lower_prompt for k in ['route', 'रास्ता', 'मार्ग']):
@@ -144,6 +147,9 @@ class MockLLMProvider(LLMProvider):
             elif any(k in lower_prompt for k in ['why not', 'second one', 'पहला', 'दूसरा']):
                 intent = 'follow_up'
                 required_caps = ['pfz', 'ocean', 'weather']
+            elif re.search(r'\b(ocean|marine|sea|fish\w*|pfz|sail\w*|voyage|coast\w*|port|boat)\b|समुद्र|समुंदर|मछली|नाव|तट', lower_prompt):
+                intent = 'general_marine_question'
+                required_caps = ['ocean', 'weather']
 
             mock_data = {
                 "intent": intent,

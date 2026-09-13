@@ -47,7 +47,7 @@ const CHAT_COPY = {
     intro: 'Ask where to fish, whether conditions are safe, or why ORCA made a recommendation.',
     placeholder: 'Ask a follow-up…',
     send: 'Send follow-up',
-    thinking: 'Checking marine evidence…',
+    thinking: 'ORCA is replying…',
     user: 'YOU',
     assistant: 'ORCA',
     map: 'Open workspace',
@@ -60,6 +60,7 @@ const CHAT_COPY = {
     confirmDelete: 'Delete the chat saved in this browser and start a new conversation? This cannot be undone.',
     confidence: 'confidence',
     noSources: 'No sources returned',
+    conversation: 'Conversation',
     readAloud: 'Read answer aloud',
     error: 'ORCA could not reach marine intelligence. Try again.',
     interrupted: 'The answer was interrupted. Send your question again.',
@@ -70,7 +71,7 @@ const CHAT_COPY = {
     intro: 'मछली कहाँ पकड़ें, समुद्र सुरक्षित है या ORCA ने यह सुझाव क्यों दिया—पूछें।',
     placeholder: 'अगला सवाल पूछें…',
     send: 'सवाल भेजें',
-    thinking: 'समुद्री प्रमाण जाँचे जा रहे हैं…',
+    thinking: 'ORCA उत्तर दे रहा है…',
     user: 'आप',
     assistant: 'ORCA',
     map: 'कार्यस्थल खोलें',
@@ -83,6 +84,7 @@ const CHAT_COPY = {
     confirmDelete: 'इस ब्राउज़र में सहेजी बातचीत हटाकर नई बातचीत शुरू करें? इसे वापस नहीं लाया जा सकता।',
     confidence: 'विश्वसनीयता',
     noSources: 'कोई स्रोत नहीं मिला',
+    conversation: 'बातचीत',
     readAloud: 'उत्तर सुनाएँ',
     error: 'ORCA समुद्री बुद्धिमत्ता से जुड़ नहीं सका। फिर प्रयास करें।',
     interrupted: 'उत्तर पूरा नहीं हुआ। अपना सवाल फिर भेजें।',
@@ -191,8 +193,10 @@ function ChatView({ turns, pending, language, onSubmit, onOpenMap, onDelete }: {
                 <div className="chat-answer">
                   <p>{turn.response.answer}</p>
                   <div className="chat-answer__meta">
-                    <span>{Math.round(turn.response.confidence * 100)}% {copy.confidence}</span>
-                    <span>{turn.response.sources.join(' · ') || copy.noSources}</span>
+                    {turn.response.intent === 'general_conversation' ? <span>{copy.conversation}</span> : <>
+                      <span>{Math.round(turn.response.confidence * 100)}% {copy.confidence}</span>
+                      <span>{turn.response.sources.join(' · ') || copy.noSources}</span>
+                    </>}
                     <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
                   </div>
                   {(turn.response.map_actions.length > 0 || turn.response.route || turn.response.recommended_pfz) && (

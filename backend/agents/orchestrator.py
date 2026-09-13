@@ -279,6 +279,22 @@ class MarineOrchestrator:
             language_hint=detected_lang,
         )
 
+        if intent_out.intent == 'general_conversation':
+            history = context.metadata.get('recent_conversation', [])
+            explanation = await self.explanation_agent.converse(query, detected_lang, history)
+            context.metadata['recent_conversation'] = (history + [{'question': query, 'answer': explanation.answer[:2000]}])[-6:]
+            context.last_intent = intent_out.intent
+            await self.memory.save_context(context)
+            await self.repo.save_agent_run(
+                session_id=sid, query=query, intent=intent_out.intent,
+                plan={'tasks': []}, tool_calls=[], evidence=[],
+                final_result={'answer': explanation.answer}, run_id=run_id,
+            )
+            return ChatResponsePayload(
+                session_id=sid, answer=explanation.answer, language=detected_lang,
+                intent=intent_out.intent, confidence=0.0, run_id=str(run_id),
+            )
+
         # 4. Location Resolution
         named_loc = intent_out.location.get('name') if intent_out.location else None
         resolved_loc = resolve_location(
@@ -498,6 +514,8 @@ class MarineOrchestrator:
 
         # 14. Persist State & Agent Run
         context.last_intent = intent_out.intent
+        history = context.metadata.get('recent_conversation', [])
+        context.metadata['recent_conversation'] = (history + [{'question': query, 'answer': explanation.answer[:2000]}])[-6:]
         await self.memory.save_context(context)
 
         # Save trace in agent_runs

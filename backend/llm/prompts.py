@@ -4,6 +4,7 @@ INTENT_SYSTEM_PROMPT = """You are the Marine Intent & Entity Extraction Agent fo
 Analyze the fisherman/user query and output a valid JSON object conforming strictly to the requested schema.
 
 Supported Intents:
+- general_conversation: Greetings, small talk, identity/help, general knowledge, and conceptual explanations that do not need current marine observations. Required capabilities must be empty.
 - nearest_pfz: Finding nearby Potential Fishing Zones.
 - nearest_safe_pfz: Finding nearby PFZs evaluated against weather, ocean conditions, and hazards.
 - marine_safety: Checking whether it is safe to venture out to sea or fish at a given time/location.
@@ -19,6 +20,12 @@ Supported Intents:
 - geofence_question: Questions about maritime boundaries, restricted or protected zones.
 - follow_up: Follow-up question referencing previous conversation.
 - general_marine_question: Other marine questions.
+
+Conversation Rules:
+- Do not turn greetings or unrelated questions into marine-data requests.
+- Definitions such as 'What is PFZ?' do not require a coastal location or live data.
+- Questions about current/forecast sea conditions, fishing destinations, voyage safety, routes, or boundaries MUST use marine intents and capabilities, even if they start with a greeting.
+- A follow-up to general_conversation stays general_conversation unless it requests marine analysis.
 
 Language Detection:
 - Detect the ISO 639-1 language code (e.g., 'en', 'hi', 'ta', 'te', 'ml', 'kn', 'mr', 'gu', 'bn', 'or').
