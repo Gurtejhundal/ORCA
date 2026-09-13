@@ -323,30 +323,33 @@ class OpenAILLMProvider(LLMProvider):
 class GeminiLLMProvider(LLMProvider):
     """Google Gemini LLM Provider."""
 
-    def __init__(self, api_key: str, model: str = 'gemini-1.5-flash'):
+    def __init__(self, api_key: str, model: str = 'gemini-3.1-flash-lite'):
         self.api_key = api_key
         self.model = model
-        self.endpoint = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}'
+        self.endpoint = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
 
     async def generate_text(self, prompt: str, system_prompt: str | None = None, temperature: float = 0.1, max_tokens: int = 2048) -> str:
-        contents = []
+        payload = {
+            'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
+            'generationConfig': {'temperature': temperature, 'maxOutputTokens': max_tokens},
+        }
         if system_prompt:
-            contents.append({'role': 'user', 'parts': [{'text': f'System Instructions:\n{system_prompt}'}]})
-            contents.append({'role': 'model', 'parts': [{'text': 'Understood. I will strictly follow these instructions.'}]})
-        contents.append({'role': 'user', 'parts': [{'text': prompt}]})
+            payload['systemInstruction'] = {'parts': [{'text': system_prompt}]}
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 self.endpoint,
-                headers={'Content-Type': 'application/json'},
-                json={
-                    'contents': contents,
-                    'generationConfig': {'temperature': temperature, 'maxOutputTokens': max_tokens}
-                }
+                headers={'Content-Type': 'application/json', 'x-goog-api-key': self.api_key},
+                json=payload,
             )
             resp.raise_for_status()
             data = resp.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
+            candidates = data.get('candidates') or []
+            parts = candidates[0].get('content', {}).get('parts', []) if candidates else []
+            answer = ''.join(part.get('text', '') for part in parts if not part.get('thought')).strip()
+            if not answer:
+                raise RuntimeError('Gemini returned no answer; the request may have been filtered')
+            return answer
 
     async def generate_structured(self, prompt: str, schema: Type[T], system_prompt: str | None = None, temperature: float = 0.0) -> T:
         schema_json = json.dumps(schema.model_json_schema())
@@ -359,7 +362,7 @@ def get_llm_provider(settings: Settings) -> LLMProvider:
     """Factory creating the appropriate LLM provider based on settings."""
     provider = settings.llm_provider.lower()
     if provider in ('gemini', 'google') and settings.llm_api_key:
-        return GeminiLLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gemini-1.5-flash')
+        return GeminiLLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gemini-3.1-flash-lite')
     elif provider == 'openai' and settings.llm_api_key:
         return OpenAILLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gpt-4o-mini')
     elif provider == 'groq' and settings.llm_api_key:

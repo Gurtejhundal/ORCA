@@ -169,6 +169,37 @@ def test_chat_separates_conversation_from_marine_analysis(client):
     assert response.json()['intent'] == 'general_conversation'
 
 
+def test_gemini_uses_private_header_and_reads_complete_answers(monkeypatch):
+    import asyncio
+    import json
+    import httpx
+    from backend.agents.schemas import IntentOutput
+    from backend.llm.provider import get_llm_provider
+
+    provider = get_llm_provider(Settings(_env_file=None, llm_provider='gemini', llm_api_key='test-only-key'))
+    real_client = httpx.AsyncClient
+
+    def respond(request):
+        assert not request.url.query and 'test-only-key' not in str(request.url)
+        assert request.headers['x-goog-api-key'] == 'test-only-key'
+        payload = json.loads(request.content)
+        assert payload['systemInstruction'] == {'parts': [{'text': 'Be helpful.'}]}
+        assert len(payload['contents']) == 1 and payload['contents'][0]['role'] == 'user'
+        assert request.url.path.endswith('/gemini-3.1-flash-lite:generateContent')
+        if payload['contents'][0]['parts'][0]['text'] == 'blocked':
+            return httpx.Response(200, json={'promptFeedback': {'blockReason': 'SAFETY'}})
+        return httpx.Response(200, json={'candidates': [{'content': {'parts': [
+            {'thought': True, 'text': 'Internal reasoning'},
+            {'text': '{"intent":'}, {'text': '"general_conversation"}'},
+        ]}}]})
+
+    monkeypatch.setattr(httpx, 'AsyncClient', lambda **kwargs: real_client(transport=httpx.MockTransport(respond), **kwargs))
+    output = asyncio.run(provider.generate_structured('Any general question', IntentOutput, system_prompt='Be helpful.'))
+    assert output.intent == 'general_conversation'
+    with pytest.raises(RuntimeError, match='Gemini returned no answer'):
+        asyncio.run(provider.generate_text('blocked', system_prompt='Be helpful.'))
+
+
 def test_zero_longitude_gps_is_preserved():
     location = resolve_location('conditions', explicit_location={'lat': 10, 'lon': 0})
     assert location and location.lon == 0
