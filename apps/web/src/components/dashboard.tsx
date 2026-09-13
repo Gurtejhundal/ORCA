@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import type { FeatureCollection } from 'geojson';
 import { MarineData } from './marine-data';
+import type { MarineToolId } from './hero/marine-tool-dock';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type {
@@ -48,6 +49,7 @@ import {
   type GeofenceStatus,
   type Location,
   type MapActionPayload,
+  type ChatResponsePayload,
 } from '@/services/marine-api';
 
 const PRESET_LOCATIONS: { name: string; lat: number; lon: number }[] = [
@@ -180,11 +182,15 @@ export function Dashboard({
   initialContext,
   embedded = false,
   language = 'en',
+  workspaceTool = 'fishing',
+  initialChat,
 }: {
   initialDecision: DecisionResponse;
   initialContext: ConversationContext;
   embedded?: boolean;
   language?: 'en' | 'hi';
+  workspaceTool?: MarineToolId;
+  initialChat?: ChatResponsePayload;
 }) {
   const copy = DASHBOARD_COPY[language];
   const [decision, setDecision] = useState(initialDecision);
@@ -195,22 +201,22 @@ export function Dashboard({
     initialDecision.recommendation.candidateZoneId ?? 'zone-a',
   );
   const [pending, setPending] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(initialChat?.warnings.join(' · ') ?? '');
   const [lastQuery, setLastQuery] = useState<string>(copy.demoQuery);
   const controller = useRef<AbortController | null>(null);
 
   // Part 4 State
-  const [currentLocation, setCurrentLocation] = useState<Location>({ lat: 10.767, lon: 79.872 });
+  const [currentLocation, setCurrentLocation] = useState<Location>(initialChat?.location ?? { lat: 10.767, lon: 79.872 });
   const [gpsActive, setGpsActive] = useState(false);
-  const [recommendedPFZ, setRecommendedPFZ] = useState<RankedPFZCandidate | null>(null);
-  const [allPFZCandidates, setAllPFZCandidates] = useState<RankedPFZCandidate[]>([]);
-  const [safetyRisk, setSafetyRisk] = useState<RiskAssessment | null>(null);
-  const [routeComparison, setRouteComparison] = useState<RouteComparison | null>(null);
-  const [geofenceStatus, setGeofenceStatus] = useState<GeofenceStatus | null>(null);
+  const [recommendedPFZ, setRecommendedPFZ] = useState<RankedPFZCandidate | null>(initialChat?.data.ranked_pfz ?? null);
+  const [allPFZCandidates, setAllPFZCandidates] = useState<RankedPFZCandidate[]>(initialChat?.data.ranked_pfz_candidates ?? []);
+  const [safetyRisk, setSafetyRisk] = useState<RiskAssessment | null>(initialChat?.risk?.risk ?? null);
+  const [routeComparison, setRouteComparison] = useState<RouteComparison | null>(initialChat?.route_comparison ?? null);
+  const [geofenceStatus, setGeofenceStatus] = useState<GeofenceStatus | null>(initialChat?.geofence ?? null);
   const [marineLayer, setMarineLayer] = useState<FeatureCollection>({ type: 'FeatureCollection', features: [] });
-  const [backendAnswer, setBackendAnswer] = useState('');
-  const sessionId = useRef<string | undefined>(undefined);
-  const [mapActions, setMapActions] = useState<MapActionPayload[]>([]);
+  const [backendAnswer, setBackendAnswer] = useState(initialChat?.answer ?? '');
+  const sessionId = useRef<string | undefined>(initialChat?.session_id);
+  const [mapActions, setMapActions] = useState<MapActionPayload[]>(initialChat?.map_actions ?? []);
 
   const result = decision.recommendation;
   const zone = decision.zones.find((z) => z.id === result.candidateZoneId);
@@ -444,6 +450,34 @@ export function Dashboard({
             className="conversation-panel"
             aria-label={copy.plannerLabel}
           >
+            {embedded && workspaceTool !== 'fishing' && <div className="workspace-tool-content">
+              {workspaceTool === 'route' ? (
+                <section aria-label={language === 'hi' ? 'मार्ग विकल्प' : 'Route options'}>
+                  <span className="eyebrow">{language === 'hi' ? 'कृत्रिम रीप्ले · नौवहन के लिए नहीं' : 'DEMO REPLAY · NOT FOR NAVIGATION'}</span>
+                  <h2>{language === 'hi' ? 'मार्ग विकल्प' : 'Route options'}</h2>
+                  <p>{language === 'hi' ? 'मत्स्य क्षेत्र चुनकर संभव मार्ग और सुरक्षा रोक देखें।' : 'Choose a fishing zone to inspect feasible routes and safety stops.'}</p>
+                  <div className="workspace-zone-selector">
+                    {decision.zones.map((candidate) => (
+                      <button key={candidate.id} type="button" aria-pressed={selectedZone === candidate.id} onClick={() => setSelectedZone(candidate.id)}>{candidate.name}</button>
+                    ))}
+                  </div>
+                  {decision.routes.filter((candidate) => candidate.zoneId === selectedZone).map((candidate) => (
+                    <article className="workspace-route" key={candidate.id}>
+                      <h3>{candidate.name}</h3>
+                      <span className={'badge ' + (candidate.rejected ? 'negative' : 'positive')}>{candidate.rejected ? (language === 'hi' ? 'अस्वीकृत' : 'REJECTED') : (language === 'hi' ? 'संभव' : 'FEASIBLE')}</span>
+                      <dl>
+                        <div><dt>{language === 'hi' ? 'दूरी' : 'Distance'}</dt><dd>{candidate.distanceKm.toFixed(1)} km</dd></div>
+                        <div><dt>{language === 'hi' ? 'सुरक्षा' : 'Safety'}</dt><dd>{candidate.safetyScore}/100</dd></div>
+                      </dl>
+                      <p>{candidate.rejected ? candidate.rejectionReasons.map(reasonLabel).join(' · ') : (language === 'hi' ? 'प्रतिबंधित क्षेत्र का कोई उल्लंघन नहीं।' : 'No restricted-area intersection.')}</p>
+                    </article>
+                  ))}
+                </section>
+              ) : (
+                <MarineData location={currentLocation} onLocation={setCurrentLocation} onLayer={setMarineLayer} language={language} tool={workspaceTool} />
+              )}
+            </div>}
+            <div hidden={embedded && workspaceTool !== 'fishing'}>
             <div className="panel-title">
               <span className="eyebrow">{copy.planner}</span>
               <span className="small-tag">01 / NAGAPATTINAM</span>
@@ -544,6 +578,7 @@ export function Dashboard({
                 <ArrowUpRight size={12} />
               </button>
             </div>
+            {embedded && backendAnswer && <div className="workspace-answer" aria-live="polite"><span className="eyebrow">{language === 'hi' ? 'समुद्री सहायक का उत्तर' : 'MARINE ASSISTANT ANSWER'}</span><p>{backendAnswer}</p></div>}
             {notice && (
               <div role="alert" className="request-notice">
                 {notice}
@@ -607,6 +642,7 @@ export function Dashboard({
             <div className="trace-footnote">
               <span className="status-dot" />
               {copy.traceFootnote}
+            </div>
             </div>
           </aside>
           <div className="map-workspace relative">
@@ -900,7 +936,7 @@ export function Dashboard({
         )}
 
         {/* Part 4 Vessel Simulation & Dynamic Reroute Section */}
-        <MarineData location={currentLocation} onLocation={setCurrentLocation} onLayer={setMarineLayer} />
+        {!embedded && <MarineData location={currentLocation} onLocation={setCurrentLocation} onLayer={setMarineLayer} language={language} />}
         <section className="my-6">
           <SimulationWidget
             origin={currentLocation}

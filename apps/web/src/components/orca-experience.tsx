@@ -13,6 +13,7 @@ import {
   Route,
   Satellite,
   ShieldCheck,
+  Trash2,
   Volume2,
   Waves,
 } from 'lucide-react';
@@ -20,7 +21,7 @@ import { marineApi, type ChatResponsePayload } from '@/services/marine-api';
 import { OrcaHero } from './hero/orca-hero';
 import { OrcaNav } from './hero/orca-nav';
 import type { AppLanguage } from './hero/ask-orca-bar';
-import type { OrcaToolId } from './hero/orca-tool-rail';
+import type { MarineToolId } from './hero/marine-tool-dock';
 import { LandingSections } from './landing-sections';
 
 type View = 'chat' | 'workspace' | 'evidence';
@@ -55,10 +56,13 @@ const CHAT_COPY = {
     recent: 'Recent conversation',
     exchange: 'exchange',
     exchanges: 'exchanges',
+    deleteChat: 'Delete chat',
+    confirmDelete: 'Delete the chat saved in this browser and start a new conversation? This cannot be undone.',
     confidence: 'confidence',
     noSources: 'No sources returned',
     readAloud: 'Read answer aloud',
     error: 'ORCA could not reach marine intelligence. Try again.',
+    interrupted: 'The answer was interrupted. Send your question again.',
   },
   hi: {
     ready: 'समुद्री निर्णय सहायक',
@@ -75,10 +79,13 @@ const CHAT_COPY = {
     recent: 'हाल की बातचीत',
     exchange: 'सवाल',
     exchanges: 'सवाल',
+    deleteChat: 'चैट हटाएँ',
+    confirmDelete: 'इस ब्राउज़र में सहेजी बातचीत हटाकर नई बातचीत शुरू करें? इसे वापस नहीं लाया जा सकता।',
     confidence: 'विश्वसनीयता',
     noSources: 'कोई स्रोत नहीं मिला',
     readAloud: 'उत्तर सुनाएँ',
     error: 'ORCA समुद्री बुद्धिमत्ता से जुड़ नहीं सका। फिर प्रयास करें।',
+    interrupted: 'उत्तर पूरा नहीं हुआ। अपना सवाल फिर भेजें।',
   },
 } as const;
 
@@ -150,7 +157,7 @@ function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; 
   );
 }
 
-function ChatView({ turns, pending, language, onSubmit, onOpenMap }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; onSubmit: (query: string) => Promise<void>; onOpenMap: () => void }) {
+function ChatView({ turns, pending, language, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
   const endRef = useRef<HTMLDivElement>(null);
   const copy = CHAT_COPY[language];
   useEffect(() => {
@@ -162,6 +169,7 @@ function ChatView({ turns, pending, language, onSubmit, onOpenMap }: { turns: Ch
     <div className="chat-workspace">
       <div className="chat-session-bar">
         <span><History size={15} /><span><strong>{copy.recent}</strong><small>{turns.length} {exchangeLabel}</small></span></span>
+        {turns.length > 0 ? <button className="chat-session-bar__delete" type="button" disabled={pending} onClick={onDelete}><Trash2 size={14} aria-hidden="true" />{copy.deleteChat}</button> : null}
       </div>
       <div className="chat-thread" aria-live="polite">
         {turns.length === 0 && (
@@ -177,7 +185,7 @@ function ChatView({ turns, pending, language, onSubmit, onOpenMap }: { turns: Ch
             <div className="chat-message chat-message--orca">
               <span><Waves size={14} />{copy.assistant}</span>
               {!turn.guide && !turn.response && !turn.error && <div className="chat-thinking" role="status"><i /><i /><i />{copy.thinking}</div>}
-              {turn.error && <div className="chat-error" role="alert">{turn.error}</div>}
+              {turn.error && <div className="chat-error" role="alert">{turn.error === CHAT_COPY.en.interrupted ? copy.interrupted : turn.error}</div>}
               {turn.guide && <div className="chat-answer"><p>{turn.guide}</p></div>}
               {turn.response && (
                 <div className="chat-answer">
@@ -188,11 +196,11 @@ function ChatView({ turns, pending, language, onSubmit, onOpenMap }: { turns: Ch
                     <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
                   </div>
                   {(turn.response.map_actions.length > 0 || turn.response.route || turn.response.recommended_pfz) && (
-                    <button className="chat-map-action" type="button" onClick={onOpenMap}><Map size={15} />{copy.map}</button>
+                    <button className="chat-map-action" type="button" onClick={() => onOpenMap(turn.response)}><Map size={15} />{copy.map}</button>
                   )}
                 </div>
               )}
-              {turn.mapRequested && <button className="chat-map-action" type="button" onClick={onOpenMap}><Map size={15} />{copy.map}</button>}
+              {turn.mapRequested && <button className="chat-map-action" type="button" onClick={() => onOpenMap()}><Map size={15} />{copy.map}</button>}
             </div>
           </div>
         ))}
@@ -239,8 +247,8 @@ function EvidenceView({ language }: { language: AppLanguage }) {
   "parameter": "wave_height",
   "value": 1.8,
   "unit": "m",
-  "source": "INCOIS",
-  "freshness": "LIVE"
+  "source": "synthetic fixture",
+  "freshness": "DEMO"
 }`}</code></pre>
         </section>
       </div>
@@ -267,9 +275,12 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [pending, setPending] = useState(false);
   const [historyReady, setHistoryReady] = useState(false);
-  const [activeTool, setActiveTool] = useState<OrcaToolId | null>(null);
+  const [activeTool, setActiveTool] = useState<MarineToolId | null>(null);
+  const [workspaceChat, setWorkspaceChat] = useState<ChatResponsePayload>();
   const sessionId = useRef<string | undefined>(undefined);
   const nextTurnId = useRef(1);
+
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -283,14 +294,12 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
               const item = turn as Partial<ChatTurn>;
               return typeof item.id === 'number' && typeof item.query === 'string';
             }).slice(-40);
-            setTurns(restored);
+            setTurns(restored.map((turn) => !turn.response && !turn.guide && !turn.error ? { ...turn, error: CHAT_COPY.en.interrupted } : turn));
             nextTurnId.current = Math.max(0, ...restored.map((turn) => turn.id)) + 1;
           }
           if (typeof saved.sessionId === 'string') sessionId.current = saved.sessionId;
         }
-      } catch {
-        localStorage.removeItem(CHAT_STORAGE_KEY);
-      }
+      } catch { /* Storage may be unavailable in private browsing. */ }
       setHistoryReady(true);
     });
     return () => cancelAnimationFrame(frame);
@@ -298,7 +307,9 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
 
   useEffect(() => {
     if (!historyReady) return;
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ turns, sessionId: sessionId.current }));
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ turns: turns.slice(-40), sessionId: sessionId.current }));
+    } catch { /* The conversation remains usable without persistent storage. */ }
   }, [historyReady, turns]);
 
   useEffect(() => {
@@ -315,7 +326,10 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
 
   const transitionTo = (next: View | null) => {
     if (view === next) return;
-    if (next) document.querySelector<HTMLDetailsElement>('.orca-tool-drawer')?.removeAttribute('open');
+    if (next) {
+      document.querySelector<HTMLDetailsElement>('.marine-tool-panel')?.removeAttribute('open');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
     const update = () => setView(next);
     const start = (document as ViewTransitionDocument).startViewTransition;
     if (start && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) start.call(document, update);
@@ -323,7 +337,7 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
   };
 
   const openView = (next: View) => {
-    setActiveTool(next === 'chat' ? 'recent' : next === 'workspace' ? (activeTool === 'recent' || !activeTool ? 'fishing' : activeTool) : null);
+    setActiveTool(next === 'workspace' ? (activeTool ?? 'fishing') : null);
     transitionTo(next);
   };
 
@@ -332,18 +346,27 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
     transitionTo(null);
   };
 
-  const selectTool = (tool: OrcaToolId) => {
+  const selectTool = (tool: MarineToolId) => {
     setActiveTool(tool);
-    transitionTo(tool === 'recent' ? 'chat' : 'workspace');
+    transitionTo('workspace');
+  };
+
+  const deleteChat = () => {
+    if (!window.confirm(CHAT_COPY[language].confirmDelete)) return;
+    sessionId.current = undefined;
+    nextTurnId.current = 1;
+    setWorkspaceChat(undefined);
+    setTurns([]);
   };
 
   const runQuery = async (query: string) => {
     if (!query.trim() || pending) return;
     const id = nextTurnId.current++;
     const openMap = isMapRequest(query);
-    setActiveTool(openMap ? 'fishing' : 'recent');
+    setActiveTool(openMap ? 'fishing' : null);
     transitionTo(openMap ? 'workspace' : 'chat');
     if (openMap) {
+      setWorkspaceChat([...turns].reverse().find((turn) => turn.response)?.response);
       setTurns((current) => [...current, { id, query, guide: CHAT_COPY[language].mapGuide, mapRequested: true }]);
       return;
     }
@@ -373,22 +396,22 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
   return (
     <main className={view ? `orca-experience orca-experience--open orca-experience--${view}` : 'orca-experience'}>
       <a className="skip-link" href="#main-content">{language === 'hi' ? 'मुख्य सामग्री पर जाएँ' : 'Skip to main content'}</a>
-      <OrcaNav language={language} activeView={view} onNavigate={navigate} onLanguageChange={setLanguage} />
+      <OrcaNav language={language} activeView={view} hasHistory={turns.length > 0} onNavigate={navigate} onLanguageChange={setLanguage} />
       <OrcaHero
         language={language}
         onSubmitQuery={runQuery}
         activeTool={activeTool}
-        hasHistory={turns.length > 0}
+        paused={!!view}
         onSelectTool={selectTool}
       />
-      <LandingSections language={language} onOpenWorkspace={() => openView('workspace')} onOpenEvidence={() => openView('evidence')} />
+      <div inert={!!view} aria-hidden={view ? true : undefined}><LandingSections language={language} onOpenWorkspace={() => openView('workspace')} onOpenEvidence={() => openView('evidence')} onAskQuery={runQuery} /></div>
       {view && (
         <section className={`experience-overlay experience-overlay--${view}`} aria-label={language === 'hi' ? 'ORCA दृश्य' : `${view} view`}>
           <div className="experience-page">
             {view === 'chat' ? (
-              <ChatView turns={turns} pending={pending} language={language} onSubmit={runQuery} onOpenMap={() => openView('workspace')} />
+              <ChatView turns={turns} pending={pending} language={language} onSubmit={runQuery} onOpenMap={(response) => { setWorkspaceChat(response); openView('workspace'); }} onDelete={deleteChat} />
             ) : view === 'workspace' ? (
-              initialDecision && initialContext ? <Dashboard initialDecision={initialDecision} initialContext={initialContext} embedded language={language} /> : <div className="workspace-unavailable" role="alert"><Map size={24} /><h1>{language === 'hi' ? 'कार्यस्थल डेटा उपलब्ध नहीं है।' : 'Workspace data is unavailable.'}</h1><p>{language === 'hi' ? 'ORCA के निर्णय इंजन से दोबारा जुड़ने तक बातचीत उपलब्ध रहेगी।' : 'The conversation remains available while ORCA reconnects to the decision engine.'}</p></div>
+              initialDecision && initialContext ? <Dashboard initialDecision={initialDecision} initialContext={initialContext} embedded language={language} workspaceTool={activeTool ?? 'fishing'} initialChat={workspaceChat} /> : <div className="workspace-unavailable" role="alert"><Map size={24} /><h1>{language === 'hi' ? 'कार्यस्थल डेटा उपलब्ध नहीं है।' : 'Workspace data is unavailable.'}</h1><p>{language === 'hi' ? 'ORCA के निर्णय इंजन से दोबारा जुड़ने तक बातचीत उपलब्ध रहेगी।' : 'The conversation remains available while ORCA reconnects to the decision engine.'}</p></div>
             ) : (
               <EvidenceView language={language} />
             )}

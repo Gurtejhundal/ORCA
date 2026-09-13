@@ -120,11 +120,20 @@ type Wave = {
   opacity: number;
 };
 
-export function OceanRippleVideo({ ariaLabel = 'Fishing boat moving through the ocean' }: { ariaLabel?: string }) {
+export function OceanRippleVideo({ paused = false, ariaLabel = 'Fishing boat moving through the ocean' }: { paused?: boolean; ariaLabel?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
   const [rippleEnabled, setRippleEnabled] = useState(false);
+  const [inViewport, setInViewport] = useState(true);
+
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => setInViewport(entry.isIntersecting));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const mobileQuery = window.matchMedia('(max-width: 720px)');
@@ -145,7 +154,7 @@ export function OceanRippleVideo({ ariaLabel = 'Fishing boat moving through the 
     if (!video) return;
 
     const syncPlayback = () => {
-      if (document.hidden) {
+      if (document.hidden || paused || !inViewport) {
         video.pause();
       } else {
         void video.play().catch(() => {
@@ -157,12 +166,12 @@ export function OceanRippleVideo({ ariaLabel = 'Fishing boat moving through the 
     syncPlayback();
     document.addEventListener('visibilitychange', syncPlayback);
     return () => document.removeEventListener('visibilitychange', syncPlayback);
-  }, []);
+  }, [paused, inViewport]);
 
   useEffect(() => {
     const mount = mountRef.current;
     const video = videoRef.current;
-    if (!mount || !video || !rippleEnabled) return;
+    if (!mount || !video || !rippleEnabled || paused || !inViewport) return;
 
     let renderer: Renderer;
     try {
@@ -423,7 +432,7 @@ export function OceanRippleVideo({ ariaLabel = 'Fishing boat moving through the 
       if (canvas.parentNode === mount) mount.removeChild(canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [rippleEnabled]);
+  }, [rippleEnabled, paused, inViewport]);
 
   return (
     <div className="ocean-ripple">
@@ -436,7 +445,7 @@ export function OceanRippleVideo({ ariaLabel = 'Fishing boat moving through the 
         muted
         loop
         playsInline
-        preload="auto"
+        preload="metadata"
         poster={POSTER_SRC}
         onCanPlay={() => setVideoReady(true)}
         aria-label={ariaLabel}

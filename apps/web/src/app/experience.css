@@ -30,8 +30,8 @@
 }
 
 .orca-experience--open .orca-nav,
-.orca-experience--open .orca-tool-rail,
-.orca-experience--open .orca-tool-drawer {
+.orca-experience--open .marine-tool-dock,
+.orca-experience--open .marine-tool-panel {
   z-index: 30;
 }
 
@@ -44,7 +44,6 @@
   background: rgba(1, 17, 24, .28);
   color: #f4fbf8;
   backdrop-filter: blur(8px) saturate(80%);
-  -webkit-backdrop-filter: blur(8px) saturate(80%);
   animation: overlay-in 240ms cubic-bezier(.22, 1, .36, 1) both;
 }
 
@@ -108,6 +107,24 @@
   color: #91a9aa;
   font: 9px/1.5 var(--font-mono);
 }
+
+.chat-session-bar__delete {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(224, 139, 132, .2);
+  border-radius: var(--radius-sm);
+  background: rgba(224, 139, 132, .06);
+  color: #d9abaa;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.chat-session-bar__delete:hover { background: rgba(224, 139, 132, .12); color: #f0cbc8; }
+.chat-session-bar__delete:disabled { opacity: .45; cursor: not-allowed; }
 
 .chat-thread {
   overflow-y: auto;
@@ -213,8 +230,8 @@
 .chat-answer__meta button {
   display: grid;
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   margin-left: auto;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, .16);
@@ -257,7 +274,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 42px;
+  min-height: 44px;
   margin-top: 16px;
   padding: 0 16px;
   border: 1px solid rgba(255, 255, 255, .2);
@@ -280,7 +297,6 @@
   background: rgba(4, 30, 41, .48);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 18px 50px rgba(0, 14, 20, .22);
   backdrop-filter: blur(30px) saturate(112%);
-  -webkit-backdrop-filter: blur(30px) saturate(112%);
 }
 
 .chat-composer input {
@@ -494,7 +510,7 @@
 @keyframes chat-pulse { to { opacity: .25; transform: translateY(-2px); } }
 @keyframes skeleton-sweep { to { background-position: -120% 0; } }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .experience-overlay {
     padding: 124px 12px 0;
   }
@@ -511,6 +527,7 @@
 
   .chat-workspace { grid-template-rows: 44px minmax(0, 1fr) auto; }
   .chat-session-bar { padding: 0 4px; }
+  .chat-session-bar__delete { min-height: 44px; }
   .chat-session-bar > small { display: none; }
   .chat-thread { padding: 24px 4px; }
   .chat-empty { margin-top: 7vh; }

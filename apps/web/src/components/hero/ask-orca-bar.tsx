@@ -8,7 +8,7 @@ export type AppLanguage = 'en' | 'hi';
 
 const COPY = {
   en: {
-    placeholder: 'Ask where to fish, whether to sail, or open the map…',
+    placeholder: 'Ask ORCA about fishing, safety, routes or sea conditions…',
     label: 'Ask ORCA about the sea',
     startVoice: 'Start voice input',
     stopVoice: 'Stop voice input',
@@ -19,10 +19,10 @@ const COPY = {
     transcribing: 'Transcribing speech…',
     unsupported: 'Voice input is not supported by this browser.',
     voiceError: 'Voice input could not start. Check microphone access and try again.',
-    suggestions: ['Where should I fish tomorrow?', 'Is it safe to sail?', 'What can ORCA do?', 'Open the marine map'],
+    suggestions: ['Where should I fish tomorrow near Nagapattinam?', 'Is it safe to sail at 5 AM?', 'Find the safest route to PFZ-02', 'What is the wave height near Kochi?'],
   },
   hi: {
-    placeholder: 'मछली पकड़ने, यात्रा सुरक्षा या मानचित्र के बारे में पूछें…',
+    placeholder: 'मत्स्य, सुरक्षा, मार्ग या समुद्री स्थिति के बारे में ORCA से पूछें…',
     label: 'समुद्र के बारे में ORCA से पूछें',
     startVoice: 'आवाज़ से पूछें',
     stopVoice: 'आवाज़ सुनना बंद करें',
@@ -33,7 +33,7 @@ const COPY = {
     transcribing: 'आवाज़ को लिखा जा रहा है…',
     unsupported: 'इस ब्राउज़र में आवाज़ इनपुट उपलब्ध नहीं है।',
     voiceError: 'माइक्रोफ़ोन चालू नहीं हुआ। अनुमति जाँचें और फिर कोशिश करें।',
-    suggestions: ['कल कहाँ मछली पकड़ूँ?', 'क्या समुद्र में जाना सुरक्षित है?', 'ORCA क्या कर सकता है?', 'समुद्री मानचित्र खोलो'],
+    suggestions: ['कल नागपट्टिनम के पास कहाँ मछली पकड़ूँ?', 'क्या सुबह 5 बजे निकलना सुरक्षित है?', 'PFZ-02 तक सबसे सुरक्षित मार्ग खोजें', 'कोच्चि के पास लहरों की ऊँचाई क्या है?'],
   },
 } as const;
 
@@ -120,8 +120,9 @@ export function AskOrcaBar({
     setVoiceStatus(copy.listening);
     setNotice('');
 
+    let stream: MediaStream | undefined;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
 
@@ -130,7 +131,8 @@ export function AskOrcaBar({
       };
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+        recorder.stream.getTracks().forEach((track) => track.stop());
+        setListening(false);
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (audioBlob.size > 1000) {
           setVoiceStatus(copy.transcribing);
@@ -142,15 +144,16 @@ export function AskOrcaBar({
               void executeQuery(tr.text);
               return;
             }
-          } catch {
-            setVoiceStatus('');
-          }
+          } catch { /* Report transcription failure below, including empty results. */ }
         }
+        setVoiceStatus('');
+        setNotice(copy.voiceError);
       };
 
       recorder.start();
       setListening(true);
     } catch {
+      stream?.getTracks().forEach((track) => track.stop());
       // Fallback to browser SpeechRecognition if MediaRecorder or mic access fails
       fallbackBrowserSpeech();
     }
@@ -194,7 +197,13 @@ export function AskOrcaBar({
     recognitionRef.current = recognition;
     setListening(true);
     setVoiceStatus(copy.listening);
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+      setVoiceStatus('');
+      setNotice(copy.voiceError);
+    }
   };
 
   const toggleVoice = () => {
@@ -216,7 +225,7 @@ export function AskOrcaBar({
 
       {notice ? <div className="ask-orca__notice" role="alert"><span>{notice}</span><button type="button" onClick={() => setNotice('')}>{copy.dismiss}</button></div> : null}
 
-      <div className="ask-orca__surface">
+      <div className="ask-orca__surface marine-glass marine-glass--search">
         <form className="ask-orca__form" onSubmit={submitQuery}>
           <span className="ask-orca__mark" aria-hidden="true">
             {loading ? <Loader2 size={19} className="animate-spin" /> : <Waves size={19} strokeWidth={1.65} />}
@@ -239,6 +248,7 @@ export function AskOrcaBar({
           <button
             className="ask-orca__voice"
             type="button"
+            disabled={loading}
             aria-label={listening ? copy.stopVoice : copy.startVoice}
             aria-pressed={listening}
             onClick={toggleVoice}

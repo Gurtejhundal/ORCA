@@ -40,6 +40,7 @@
 .app-shell .map-north { position: absolute; top: 24px; right: 24px; text-align: center; pointer-events: none; }
 .app-shell .map-north span { display: block; }
 .app-shell .map-controls { position: absolute; right: 16px; bottom: 115px; display: grid; gap: 6px; }
+.app-shell .map-controls button { min-width: 44px; min-height: 44px; }
 .app-shell .map-layer-controls { position: absolute; bottom: 55px; left: 15px; display: flex; flex-wrap: wrap; gap: 6px; }
 .app-shell .map-legend { position: absolute; bottom: 30px; left: 15px; font-size: 11px; pointer-events: none; }
 .app-shell .map-attribution { position: absolute; bottom: 8px; left: 15px; font-size: 9px; pointer-events: none; }
@@ -123,7 +124,7 @@
 
 .app-shell--embedded .scenario-control select,
 .app-shell--embedded .scenario-control button {
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .app-shell--embedded .intelligence-workspace {
@@ -177,6 +178,31 @@
 .app-shell--embedded .map-recommendation {
   display: none;
 }
+
+.workspace-tool-content h2 { margin: 10px 0 16px; font-size: 22px; font-weight: 400; }
+.workspace-tool-content p { color: var(--orca-text-secondary); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.workspace-tool-content [hidden] { display: none; }
+.workspace-zone-selector, .marine-layer-selector { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.workspace-zone-selector button, .marine-layer-selector button { min-height: 44px; padding: 8px; border: 1px solid rgba(225,247,242,.18); border-radius: var(--radius-sm); color: var(--foam); font-size: 12px; cursor: pointer; }
+.workspace-zone-selector button[aria-pressed='true'], .marine-layer-selector button[aria-pressed='true'] { border-color: var(--orca-accent); box-shadow: inset 0 -2px var(--orca-accent); }
+.marine-layer-selector p { grid-column: 1 / -1; }
+.workspace-route { padding: 20px 0; border-bottom: 1px solid rgba(225,247,242,.14); }
+.workspace-route h3 { margin: 0 0 12px; font-size: 16px; font-weight: 500; }
+.workspace-route dl > div { display: flex; justify-content: space-between; gap: 20px; padding: 8px 0; color: var(--orca-text-secondary); font-size: 12px; }
+.workspace-route dd { margin: 0; color: var(--foam); font-family: var(--font-mono); }
+.marine-location-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+.marine-location-form label { min-width: 0; color: var(--orca-text-secondary); font-size: 12px; }
+.marine-location-form input { width: 100%; min-height: 44px; margin-top: 6px; padding: 8px; border: 1px solid rgba(225,247,242,.18); border-radius: var(--radius-sm); background: rgba(12,52,65,.82); color: var(--foam); font-size: 16px; }
+.marine-location-form button { min-height: 44px; padding: 8px; border: 1px solid rgba(225,247,242,.18); border-radius: var(--radius-sm); color: var(--foam); font-size: 12px; cursor: pointer; }
+.marine-readings article { padding: 18px 0; border-bottom: 1px solid rgba(225,247,242,.14); }
+.marine-readings article > p { margin: 8px 0; color: var(--foam); font-size: 24px; }
+.marine-readings small { color: var(--orca-text-muted); font-size: 11px; line-height: 1.5; }
+.marine-readings summary { display: flex; align-items: center; min-height: 44px; color: var(--orca-accent); font-size: 12px; cursor: pointer; }
+.marine-alert { margin-top: 16px; padding: 16px; border-left: 2px solid var(--orca-warning); background: rgba(231,190,115,.05); }
+.marine-alert h4 { margin: 0; font-size: 14px; font-weight: 500; }
+.marine-data-mode, .marine-data-note { color: var(--orca-warning) !important; }
+.workspace-answer { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(225,247,242,.14); }
+.workspace-answer p { color: var(--orca-text-secondary); font-size: 14px; white-space: pre-wrap; }
 
 @media (max-width: 850px) {
   .app-shell--embedded {

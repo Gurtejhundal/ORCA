@@ -8,6 +8,7 @@ export default defineConfig([
   { settings: { next: { rootDir: 'apps/web/' } } },
   globalIgnores([
     '**/.next/**',
+    '**/.vercel/**',
     '**/next-env.d.ts',
     'output/**',
     '.playwright-cli/**',

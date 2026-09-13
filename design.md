@@ -53,7 +53,7 @@ ORCA must feel like one calm marine-intelligence product from the cinematic ocea
 - Interface font: IBM Plex Sans
 - Technical font: IBM Plex Mono
 - H1: 30–44px, regular weight
-- H2: 22–30px
+- Landing H2: 42–52px desktop, 30–36px mobile; workspace H2: 22–30px
 - H3: 16–20px
 - Body: 14–16px, 1.55–1.7 line height
 - Label: 10–12px, mono only for metadata
@@ -67,7 +67,7 @@ ORCA must feel like one calm marine-intelligence product from the cinematic ocea
 - Maximum reading width: 760px
 - Maximum workspace width: 1600px
 - Breakpoints: 600px, 760px, 1024px, 1440px
-- Mobile margin: 12–20px; desktop margin: 24–64px
+- Landing content: max-width 1360px; gutters 64/48/32/20px desktop to mobile
 
 ## 8. Shape, Border, and Depth
 
@@ -88,8 +88,8 @@ ORCA must feel like one calm marine-intelligence product from the cinematic ocea
 
 ## 10. Core Components
 
-- Navigation: thin floating marine-glass rail with ORCA identity, Home, Capabilities, Use Cases, Data Sources, About, and one Open Workspace action
-- Tool rail: compact marine instrument strip; mobile uses one visible tools disclosure instead of squeezed icons
+- Navigation: three compact marine-glass islands; Home, Capabilities, How ORCA Works, Use Cases, Data Sources. About lives in the footer. Recent chat is a separate real action, never a dock tool.
+- MarineToolDock: only Fishing Zones, Conditions, Alerts, Route, Layers; 82px wide, 34px left offset. At <=768px use one tools disclosure.
 - Search/composer: same material as navigation and rail
 - Chat: one continuous scroll with earlier turns above and a visible recent-history entry point
 - Workspace: embedded trip planner and map; no second product header
@@ -120,7 +120,7 @@ ORCA must feel like one calm marine-intelligence product from the cinematic ocea
 
 - Desktop: top navigation, left tool rail, centered chat, two-column workspace
 - Tablet: compact rail and narrower trip planner
-- Mobile: ORCA brand, language, and menu in the top rail; tools collapse into a compact disclosure; workspace becomes planner above map
+- Mobile: ORCA brand and menu; language lives inside the menu. Tools collapse into a compact disclosure; workspace becomes the selected tool panel above the map.
 - No horizontal page scrolling; only intentional local table or tab overflow
 
 ## 14. Page Rules
@@ -128,10 +128,12 @@ ORCA must feel like one calm marine-intelligence product from the cinematic ocea
 - Home: preserved ocean/video composition, persistent glass controls, one conversational input, then a continuous product story
 - Capabilities: four alternating editorial rows for fishing, safety, route, and conversational intelligence
 - How it works: Ask → Understand → Collect → Analyse → Compare → Recommend
-- Use cases: explicit PFZ comparison showing why nearest does not always mean best
+- Decision intelligence: illustrative PFZ comparison with route exposure and score bars showing why nearest does not always mean best
+- Use cases: Fishermen, Coastal Authorities, Researchers, Maritime Operators selector; scenario questions open the existing conversation
 - Data sources: provider-to-collector-to-normalization-to-freshness-to-decision pipeline
-- About: traceable evidence receipt, data-state labels, and safety-before-ranking rule
-- Chat: same ocean held static and softened; history scrolls inside one thread
+- Explainability: demo receipt with confidence once, per-row DEMO labels, and a separate explanatory freshness legend
+- Safety & reliability: official-warning precedence, missing evidence, hard safety gates
+- Chat: same ocean held static and softened; history scrolls inside one thread. Confirmed delete clears this browser's conversation and session context. No wheel-based view changes.
 - Workspace: existing analysis and marine-map logic embedded below persistent controls
 - Evidence: one consolidated technical view, not separate marketing pages
 - `/dashboard`: retained as a direct deep link, but normal product navigation stays in the home shell
@@ -146,7 +148,7 @@ ORCA must feel like one calm marine-intelligence product from the cinematic ocea
 
 ## 16. Implementation and QA
 
-- Styling: global CSS scoped by component classes and shared tokens
+- Styling: global CSS scoped by component classes and shared tokens; .marine-glass variants for nav (18px), search (24px), dock (20px), chips (12px); opaque fallback only when backdrop blur is unsupported
 - Components: `apps/web/src/components`
 - Icons: `lucide-react`
 - Motion: native View Transitions with a CSS fallback and reduced-motion support
