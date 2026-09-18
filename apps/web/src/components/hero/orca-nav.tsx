@@ -69,7 +69,9 @@ export function OrcaNav({
 
       <nav className="orca-nav__rail marine-glass marine-glass--nav" aria-label={language === 'hi' ? 'मुख्य नेविगेशन' : 'Primary navigation'}>
         {NAV_ITEMS.map((item) => (
-          <a key={item.id} href={`#${item.id}`} aria-current={!activeView && activeSection === item.id ? 'page' : undefined} onClick={() => selectSection(item.id)}>{item[language]}</a>
+          <a key={item.id} href={`#${item.id}`} aria-current={!activeView && activeSection === item.id ? 'page' : undefined} onClick={() => selectSection(item.id)}>
+            <span>{item[language]}</span>
+          </a>
         ))}
       </nav>
 
@@ -82,7 +84,11 @@ export function OrcaNav({
       </div>
 
       <nav className="orca-nav__mobile marine-glass marine-glass--nav" id="orca-mobile-menu" hidden={!menuOpen} aria-label={language === 'hi' ? 'मुख्य नेविगेशन' : 'Primary navigation'}>
-        {NAV_ITEMS.map((item) => <a key={item.id} href={`#${item.id}`} aria-current={!activeView && activeSection === item.id ? 'page' : undefined} onClick={() => selectSection(item.id)}>{item[language]}</a>)}
+        {NAV_ITEMS.map((item) => (
+          <a key={item.id} href={`#${item.id}`} aria-current={!activeView && activeSection === item.id ? 'page' : undefined} onClick={() => selectSection(item.id)}>
+            <span>{item[language]}</span>
+          </a>
+        ))}
         <button type="button" onClick={openWorkspace}>{language === 'hi' ? 'कार्यस्थल खोलें' : 'Open workspace'}<span aria-hidden="true">↗</span></button>
         <div className="orca-nav__mobile-actions">{languages()}{recent()}</div>
       </nav>

@@ -13,6 +13,7 @@ import {
 
 const VIDEO_SRC = '/assets/ocean/orca-ocean.mp4';
 const POSTER_SRC = '/assets/ocean/orca-ocean-poster.jpg';
+const MASK_SRC = '/assets/ocean/orca-boat-mask.png';
 const MAX_WAVES = 40;
 const START_SCALE = 1.35;
 
@@ -78,6 +79,7 @@ varying vec2 vUv;
 
 uniform sampler2D uVideo;
 uniform sampler2D uDisplacement;
+uniform sampler2D uBoatMask;
 uniform vec2 uResolution;
 uniform vec2 uVideoSize;
 uniform vec2 uTexel;
@@ -98,9 +100,10 @@ void main() {
   float up = texture2D(uDisplacement, vUv + vec2(0.0, uTexel.y)).r;
   vec2 gradient = vec2(right - left, up - down);
 
-  // The boat remains crisp inside this feathered center exclusion zone.
-  vec2 boatDistance = (vUv - vec2(0.5, 0.515)) / vec2(0.105, 0.205);
-  float boatExclusion = smoothstep(0.58, 1.18, length(boatDistance));
+  // Exact boat area exclusion mapped via pixel-perfect mask texture
+  vec2 videoUV = coverUV(vUv);
+  float maskVal = texture2D(uBoatMask, videoUV).r;
+  float boatExclusion = 1.0 - smoothstep(0.12, 0.88, maskVal);
   vec2 displacement = gradient * uStrength * boatExclusion;
 
   vec3 color = texture2D(uVideo, coverUV(vUv + displacement)).rgb;
@@ -198,6 +201,31 @@ export function OceanRippleVideo({ paused = false, ariaLabel = 'Fishing boat mov
       wrapT: gl.CLAMP_TO_EDGE,
     });
 
+    const maskTexture = new Texture(gl, {
+      generateMipmaps: false,
+      minFilter: gl.LINEAR,
+      magFilter: gl.LINEAR,
+      wrapS: gl.CLAMP_TO_EDGE,
+      wrapT: gl.CLAMP_TO_EDGE,
+    });
+
+    let boatPixelData: Uint8ClampedArray | null = null;
+    const maskImage = new Image();
+    maskImage.src = MASK_SRC;
+    maskImage.onload = () => {
+      maskTexture.image = maskImage;
+      maskTexture.needsUpdate = true;
+
+      const offscreen = document.createElement('canvas');
+      offscreen.width = 160;
+      offscreen.height = 90;
+      const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
+      if (offCtx) {
+        offCtx.drawImage(maskImage, 0, 0, 160, 90);
+        boatPixelData = offCtx.getImageData(0, 0, 160, 90).data;
+      }
+    };
+
     const offsets = new Float32Array(MAX_WAVES * 2);
     const scales = new Float32Array(MAX_WAVES * 2);
     const directions = new Float32Array(MAX_WAVES * 2);
@@ -257,6 +285,7 @@ export function OceanRippleVideo({ paused = false, ariaLabel = 'Fishing boat mov
     const compositeUniforms = {
       uVideo: { value: videoTexture },
       uDisplacement: { value: displacementTarget.texture },
+      uBoatMask: { value: maskTexture },
       uResolution: { value: [1, 1] },
       uVideoSize: { value: [1920, 1080] },
       uTexel: { value: [1, 1] },
@@ -321,7 +350,40 @@ export function OceanRippleVideo({ paused = false, ariaLabel = 'Fishing boat mov
     const onPointerMove = (event: PointerEvent) => {
       const rect = mount.getBoundingClientRect();
       const x = event.clientX - rect.left;
-      const y = rect.height - (event.clientY - rect.top);
+      const screenY = event.clientY - rect.top;
+      const y = rect.height - screenY;
+
+      // Check if pointer is over the boat area in video UV coordinates
+      const safeVideoW = 1920;
+      const safeVideoH = 1080;
+      const scale = Math.max(width / safeVideoW, height / safeVideoH);
+      const scaledW = safeVideoW * scale;
+      const scaledH = safeVideoH * scale;
+      const offsetX = (width - scaledW) * 0.5;
+      const offsetY = (height - scaledH) * 0.5;
+
+      const videoU = (x - offsetX) / scaledW;
+      const videoV = (screenY - offsetY) / scaledH;
+
+      let isOverBoat = false;
+      if (boatPixelData && videoU >= 0 && videoU <= 1 && videoV >= 0 && videoV <= 1) {
+        const px = Math.min(159, Math.max(0, Math.floor(videoU * 160)));
+        const py = Math.min(89, Math.max(0, Math.floor(videoV * 90)));
+        const idx = (py * 160 + px) * 4;
+        isOverBoat = (boatPixelData[idx] ?? 0) > 30;
+      } else {
+        const bdx = (videoU - 0.50) / 0.085;
+        const bdy = (videoV - 0.50) / 0.22;
+        isOverBoat = (bdx * bdx + bdy * bdy) <= 1.05;
+      }
+
+      if (isOverBoat) {
+        previousX = Number.NaN;
+        previousY = Number.NaN;
+        previousPointerTime = 0;
+        return;
+      }
+
       if (!Number.isFinite(previousX) || !Number.isFinite(previousY)) {
         previousX = x;
         previousY = y;
@@ -423,6 +485,7 @@ export function OceanRippleVideo({ paused = false, ariaLabel = 'Fishing boat mov
     animationFrame = requestAnimationFrame(renderFrame);
 
     return () => {
+      maskImage.onload = null;
       if (animationFrame) cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', syncAnimation);

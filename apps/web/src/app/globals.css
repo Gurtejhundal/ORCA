@@ -222,31 +222,68 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 3px;
+  padding: 0 6px;
   color: rgba(244, 251, 248, .72);
   font-size: 13px;
   white-space: nowrap;
   text-decoration: none;
   text-shadow: 0 1px 10px rgba(0, 18, 28, .42);
-  transition: color var(--motion-fast), background var(--motion-fast);
+  transition: color var(--motion-fast), text-shadow var(--motion-fast);
 }
 
-.orca-nav__rail a:hover,
+.orca-nav__rail a:hover {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(138, 215, 216, 0.2);
+}
+
 .orca-nav__rail a[aria-current='page'] {
   color: #ffffff;
-  background: rgba(255,255,255,.04);
+  font-weight: 500;
+  text-shadow: 0 0 8px rgba(138, 215, 216, 0.32);
+}
+
+.orca-nav__rail a::after {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--orca-accent);
+  box-shadow: 0 0 4px rgba(138, 215, 216, 0.35);
+  content: '';
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .orca-nav__rail a[aria-current='page']::after {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #ffffff;
-  content: '';
-  transform: translateX(-50%);
+  opacity: 1;
+  animation: navUnderlineExpand 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes navUnderlineExpand {
+  0% {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    opacity: 0.5;
+    transform: translateX(-50%) scale(0.6);
+  }
+  30% {
+    width: 4px;
+    height: 3px;
+    border-radius: 50%;
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    width: 22px;
+    height: 2px;
+    border-radius: 9999px;
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
 }
 
 .orca-nav__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 50px; padding: 3px; border-radius: 19px; pointer-events: auto; }
@@ -515,9 +552,12 @@ summary:focus-visible {
   .language-switch button { flex: 0 0 44px; min-width: 44px; min-height: 44px; }
   .orca-nav__mobile:not([hidden]) { position: absolute; top: 60px; right: 0; display: grid; gap: 3px; width: min(340px, 100%); max-height: calc(100svh - 106px); overflow-y: auto; padding: 8px; border-radius: var(--radius-md); background: rgba(4,29,43,.56); pointer-events: auto; }
   .orca-nav__mobile a,
-  .orca-nav__mobile > button { display: flex; align-items: center; justify-content: space-between; min-height: 46px; padding: 0 14px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--foam); font-size: 14px; text-decoration: none; cursor: pointer; }
-  .orca-nav__mobile a:hover { background: rgba(255, 255, 255, .07); }
-  .orca-nav__mobile a[aria-current='page'] { background: rgba(255,255,255,.07); text-decoration: underline; text-underline-offset: 5px; }
+  .orca-nav__mobile > button { display: flex; align-items: center; justify-content: space-between; min-height: 46px; padding: 0 16px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--foam); font-size: 14px; text-decoration: none; cursor: pointer; transition: color var(--motion-fast), text-shadow var(--motion-fast); }
+  .orca-nav__mobile a > span { position: relative; display: inline-flex; align-items: center; padding-bottom: 3px; }
+  .orca-nav__mobile a:hover { color: #ffffff; background: transparent; text-shadow: 0 0 6px rgba(138, 215, 216, 0.2); }
+  .orca-nav__mobile a[aria-current='page'] { color: #ffffff; background: transparent; font-weight: 500; text-shadow: 0 0 8px rgba(138, 215, 216, 0.32); }
+  .orca-nav__mobile a > span::after { position: absolute; bottom: 0; left: 50%; width: 0; height: 2px; border-radius: 9999px; background: var(--orca-accent); box-shadow: 0 0 4px rgba(138, 215, 216, 0.35); content: ''; transform: translateX(-50%); opacity: 0; pointer-events: none; }
+  .orca-nav__mobile a[aria-current='page'] > span::after { opacity: 1; animation: navUnderlineExpand 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .orca-nav__mobile > button { margin-top: 4px; background: rgba(248, 253, 251, .94); color: #103641; font-weight: 500; }
   .orca-nav__mobile-actions { justify-content: space-between; padding: 8px 6px 0; }
 }
