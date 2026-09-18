@@ -2,6 +2,7 @@
 output/
 .vercel/
 node_modules/
+**/node_modules/
 **/.next/
 .venv/
 **/__pycache__/
