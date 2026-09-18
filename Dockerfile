@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Final runtime image
@@ -40,4 +41,4 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://127.0.0.1:8000/api/v1/system/status || exit 1
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
