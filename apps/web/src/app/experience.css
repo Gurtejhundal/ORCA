@@ -456,17 +456,6 @@
 .evidence-pipeline strong { font-size: 12px; font-weight: 500; }
 .evidence-pipeline small { margin-top: 3px; color: #8da7aa; font: 9px var(--font-mono); }
 
-.evidence-pipeline pre {
-  margin: 18px 0 0;
-  padding: 18px;
-  overflow-x: auto;
-  border: 0;
-  border-radius: 8px;
-  background: rgba(1, 17, 24, .58);
-  color: #cde5de;
-  font: 10px/1.75 var(--font-mono);
-}
-
 .safety-line {
   display: flex;
   flex-wrap: wrap;

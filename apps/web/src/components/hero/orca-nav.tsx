@@ -60,8 +60,11 @@ export function OrcaNav({
   </div>;
   const recent = () => hasHistory && <button className="orca-nav__recent" type="button" aria-label={language === 'hi' ? 'हाल की बातचीत खोलें' : 'Open recent chat'} aria-pressed={activeView === 'chat'} onClick={() => { setMenuOpen(false); onNavigate?.('chat'); }}><History size={18} strokeWidth={1.6} aria-hidden="true" /></button>;
 
+  const compact = !!activeView;
+  const hidden = !activeView && activeSection !== 'home';
+
   return (
-    <header className="orca-nav">
+    <header className={`orca-nav${compact ? ' orca-nav--compact' : ''}${hidden ? ' orca-nav--hidden' : ''}`}>
       <a className="orca-nav__brand marine-glass marine-glass--nav" href="#home" aria-label={language === 'hi' ? 'ORCA होम' : 'ORCA home'} onClick={() => selectSection('home')}>
         <Waves size={19} strokeWidth={1.7} aria-hidden="true" />
         <span><strong>ORCA</strong><small>{language === 'hi' ? 'समुद्री बुद्धिमत्ता' : 'MARINE INTELLIGENCE'}</small></span>

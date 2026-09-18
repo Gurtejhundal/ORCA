@@ -240,13 +240,6 @@ function EvidenceView({ language }: { language: AppLanguage }) {
           {pipeline.map(({ title, detail }) => (
             <div key={title}><span><strong>{title}</strong><small>{detail}</small></span></div>
           ))}
-          <pre aria-label={copy.example}><code>{`{
-  "parameter": "wave_height",
-  "value": 1.8,
-  "unit": "m",
-  "source": "synthetic fixture",
-  "freshness": "DEMO"
-}`}</code></pre>
         </section>
       </div>
       <div className="safety-line"><strong>{copy.safety}</strong>{copy.safetyItems.map((item) => <span key={item}>{item}</span>)}</div>

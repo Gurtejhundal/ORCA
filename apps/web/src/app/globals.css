@@ -195,6 +195,25 @@ summary:focus-visible {
   transform: translateX(-50%);
 }
 
+.orca-nav--compact {
+  grid-template-columns: auto;
+  justify-content: start;
+  width: max-content;
+}
+
+.orca-nav--compact .orca-nav__rail,
+.orca-nav--compact .orca-nav__actions,
+.orca-nav--compact .orca-nav__mobile {
+  display: none;
+}
+
+.orca-nav--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-12px);
+}
+
 .orca-nav__brand {
   display: flex;
   align-items: center;
@@ -388,6 +407,23 @@ summary:focus-visible {
 }
 
 .marine-tool-panel { display: none; }
+
+.orca-experience--open .marine-tool-dock {
+  width: 56px;
+  left: 30px;
+  padding: 6px;
+}
+
+.orca-experience--open .marine-tool-dock button {
+  grid-template-columns: 1fr;
+  min-height: 54px;
+  padding: 0;
+  place-items: center;
+}
+
+.orca-experience--open .marine-tool-dock button span {
+  display: none;
+}
 
 .ask-orca {
   position: absolute;
