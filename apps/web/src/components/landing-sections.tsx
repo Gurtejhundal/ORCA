@@ -6,14 +6,13 @@ import {
   Database,
   Fish,
   Gauge,
-  MapPin,
   MessageSquareText,
-  Navigation,
   Route,
   Satellite,
   ShieldCheck,
   Waves,
 } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import type { AppLanguage } from './hero/ask-orca-bar';
 
@@ -191,6 +190,32 @@ const COPY = {
 } as const;
 
 const CAPABILITY_ICONS = [Fish, ShieldCheck, Route, MessageSquareText] as const;
+const CAPABILITY_MEDIA = [
+  {
+    src: 'https://eoimages.gsfc.nasa.gov/images/imagerecords/84000/84479/nwshelf_vir_2014225_lrg.jpg',
+    alt: 'Satellite view of chlorophyll tracing ocean currents',
+    credit: 'NASA Earth Observatory · VIIRS',
+    href: 'https://earthobservatory.nasa.gov/images/84479/the-hydrologic-cycle',
+  },
+  {
+    src: 'https://marinenavigation.noaa.gov/images/forecasts/NDFDWaveHeightMap.jpg',
+    alt: 'NOAA marine wave-height forecast map',
+    credit: 'NOAA · NDFD wave guidance',
+    href: 'https://marinenavigation.noaa.gov/forecasts.html',
+  },
+  {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Fishing_Boat_Waves_Devaneri_Mahabalipuram_Sep22_A7C_02637.jpg',
+    alt: 'Fishing crew launching a boat through waves at Devaneri, Tamil Nadu',
+    credit: 'T A Gonsalves · CC BY-SA 4.0',
+    href: 'https://commons.wikimedia.org/wiki/File:Fishing_Boat_Waves_Devaneri_Mahabalipuram_Sep22_A7C_02637.jpg',
+  },
+  {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Fishing_boats_at_Rameswaram_fishing_port..JPG/1280px-Fishing_boats_at_Rameswaram_fishing_port..JPG',
+    alt: 'Fishing crews unloading sardines at Rameswaram fishing harbour',
+    credit: 'Rudolph A. Furtado · CC0',
+    href: 'https://commons.wikimedia.org/wiki/File:Fishing_boats_at_Rameswaram_fishing_port..JPG',
+  },
+] as const;
 const SOURCE_NAMES = ['INCOIS', 'IMD', 'Copernicus', 'GEBCO'];
 
 export function LandingSections({
@@ -232,6 +257,7 @@ export function LandingSections({
         <div className="capability-sequence">
           {copy.capabilityLabels.map(([title, description, signal], index) => {
             const Icon = CAPABILITY_ICONS[index] ?? Waves;
+            const media = CAPABILITY_MEDIA[index];
             return (
               <article key={title}>
                 <div className="capability-copy">
@@ -239,12 +265,10 @@ export function LandingSections({
                   <Icon aria-hidden="true" />
                   <div><h3>{title}</h3><p>{description}</p></div>
                 </div>
-                <div className={`capability-visual capability-visual--${index + 1}`} aria-hidden="true">
-                  <svg viewBox="0 0 500 180">
-                    {index === 0 ? <><ellipse cx="285" cy="85" rx="145" ry="58" /><ellipse cx="285" cy="85" rx="100" ry="40" /><ellipse cx="285" cy="85" rx="52" ry="24" /><circle cx="285" cy="85" r="6" className="capability-point" /></> : index === 1 ? <><path d="M60 60Q100 25 140 60T220 60T300 60T380 60T460 60M60 93Q100 58 140 93T220 93T300 93T380 93T460 93" /><path d="M70 122H430" className="capability-threshold" /></> : index === 2 ? <><rect x="200" y="25" width="90" height="62" rx="5" className="capability-boundary" /><path d="M60 125L315 125L435 42" /><circle cx="60" cy="125" r="5" className="capability-point" /><circle cx="435" cy="42" r="5" className="capability-point" /></> : <><path d="M65 38H290V84H112L85 102V84H65ZM210 99H435V140H385L360 156V140H210Z" /><path d="M88 55H205M88 68H260M232 117H370" className="capability-message" /></>}
-                  </svg>
-                  <strong>{signal}</strong>
-                </div>
+                <figure className={`capability-visual capability-visual--${index + 1}`}>
+                  <Image src={media.src} alt={media.alt} fill sizes="(max-width: 768px) 100vw, 52vw" unoptimized />
+                  <figcaption><strong>{signal}</strong><a href={media.href} target="_blank" rel="noreferrer">{media.credit}</a></figcaption>
+                </figure>
               </article>
             );
           })}
@@ -288,17 +312,17 @@ export function LandingSections({
               <text x="278" y="18">PFZ-01</text><text x="478" y="20">PFZ-02</text>
             </svg>
           </div>
-          <article>
-            <header><MapPin aria-hidden="true" /><strong>PFZ-01</strong><small>{copy.nearestLabel}</small></header>
-            <dl><div><dt>{copy.distance}</dt><dd>12.4 km</dd></div><div><dt>{copy.fishing}</dt><dd>82</dd></div><div><dt>{copy.safety}</dt><dd>52</dd></div><div><dt>{copy.routeRisk}</dt><dd className="risk-high">{copy.high}</dd></div></dl>
-            <div className="comparison-bars" aria-hidden="true"><i style={{ width: '82%' }} /><i className="comparison-bars--risk" style={{ width: '52%' }} /></div>
-          </article>
-          <div className="decision-route" aria-hidden="true"><span /><Navigation /></div>
-          <article className="decision-comparison__selected">
-            <header><ShieldCheck aria-hidden="true" /><strong>PFZ-02</strong><small>{copy.chosenLabel}</small></header>
-            <dl><div><dt>{copy.distance}</dt><dd>18.7 km</dd></div><div><dt>{copy.fishing}</dt><dd>88</dd></div><div><dt>{copy.safety}</dt><dd>86</dd></div><div><dt>{copy.routeRisk}</dt><dd className="risk-low">{copy.low}</dd></div></dl>
-            <div className="comparison-bars" aria-hidden="true"><i style={{ width: '88%' }} /><i style={{ width: '86%' }} /></div>
-          </article>
+          <div className="comparison-table-wrap">
+            <table className="comparison-table">
+              <thead><tr><th scope="col">{language === 'hi' ? 'मापदंड' : 'Measure'}</th><th scope="col"><span>PFZ-01</span><small>{copy.nearestLabel}</small></th><th scope="col"><span>PFZ-02</span><small>{copy.chosenLabel}</small></th></tr></thead>
+              <tbody>
+                <tr><th scope="row">{copy.distance}</th><td>12.4 km</td><td>18.7 km</td></tr>
+                <tr><th scope="row">{copy.fishing}</th><td><span className="metric-value">82</span><span className="metric-track"><i style={{ width: '82%' }} /></span></td><td><span className="metric-value">88</span><span className="metric-track"><i style={{ width: '88%' }} /></span></td></tr>
+                <tr><th scope="row">{copy.safety}</th><td><span className="metric-value">52</span><span className="metric-track"><i style={{ width: '52%' }} /></span></td><td><span className="metric-value">86</span><span className="metric-track metric-track--safe"><i style={{ width: '86%' }} /></span></td></tr>
+                <tr><th scope="row">{copy.routeRisk}</th><td className="risk-high">{copy.high}</td><td className="risk-low">{copy.low}</td></tr>
+              </tbody>
+            </table>
+          </div>
           <div className="decision-result"><Check aria-hidden="true" /><span><strong>{copy.recommended}</strong><small>{copy.recommendation}</small></span></div>
         </div>
       </section>
@@ -341,7 +365,7 @@ export function LandingSections({
           <article className="evidence-receipt">
             <header><Waves aria-hidden="true" /><h3>{copy.explanationTitle}</h3><span className="data-state data-state--demo">{copy.states[3]}</span></header>
             <p className="evidence-receipt__why">{copy.exampleWhy}</p>
-            <dl>{copy.explanationRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}<small className="data-state data-state--demo" title={copy.stateDescriptions[3]}>{copy.states[3]}</small></dd></div>)}</dl>
+            <dl>{copy.explanationRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
             <p className="evidence-receipt__source">{copy.exampleSource}</p>
           </article>
           <details className="freshness-legend"><summary>{copy.stateLegend}</summary>{copy.states.map((state, index) => <p key={state}><span className={`data-state data-state--${['live', 'cached', 'static', 'demo'][index]}`}>{state}</span>{copy.stateDescriptions[index]}</p>)}</details>
