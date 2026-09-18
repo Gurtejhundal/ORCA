@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /install /usr/local
 COPY backend/ ./backend/
+COPY data/demo/ ./data/demo/
 
 # Non-root secure user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
