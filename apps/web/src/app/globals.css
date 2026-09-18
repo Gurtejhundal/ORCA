@@ -18,7 +18,7 @@
   --orca-error: #e08b84;
   --orca-glass-bg: rgba(5, 31, 44, .28);
   --orca-glass-bg-strong: rgba(5, 31, 44, .46);
-  --orca-glass-border: rgba(255, 255, 255, .15);
+  --orca-glass-border: rgba(255, 255, 255, .08);
   --orca-glass-highlight: rgba(255, 255, 255, .12);
   --orca-glass-blur: 20px;
   --marine-glass: var(--orca-glass-bg);
@@ -162,24 +162,22 @@ summary:focus-visible {
 .marine-glass {
   /* Let the CSS pipeline add prefixes; a trailing hand-written prefix removes the standard filter during optimization. */
   --glass-blur: var(--orca-glass-blur);
-  border: 1px solid var(--orca-glass-border);
+  border: 0;
   background: linear-gradient(180deg, rgba(12, 50, 68, .42), rgba(4, 29, 43, .28));
-  box-shadow: inset 0 1px 0 var(--orca-glass-highlight), inset 0 -1px 0 rgba(255,255,255,.04), 0 12px 36px rgba(0,0,0,.16);
+  box-shadow: 0 12px 36px rgba(0,0,0,.14);
   backdrop-filter: blur(var(--glass-blur)) saturate(145%);
 }
 
 .marine-glass--nav {
   --glass-blur: var(--glass-nav-blur);
-  border-color: rgba(255,255,255,.12);
-  background: var(--orca-glass-bg);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 8px 28px rgba(0,0,0,.12);
+  background: rgba(5, 31, 44, .44);
+  box-shadow: 0 8px 28px rgba(0,0,0,.12);
 }
 
 .marine-glass--search {
   --glass-blur: var(--glass-search-blur);
-  border-color: rgba(255,255,255,.17);
   background: linear-gradient(180deg, rgba(15,58,76,.46), rgba(4,28,42,.34));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 12px 42px rgba(0,0,0,.18);
+  box-shadow: 0 12px 42px rgba(0,0,0,.18);
 }
 
 .orca-nav {
@@ -294,7 +292,7 @@ summary:focus-visible {
 .orca-nav__workspace {
   min-height: 44px;
   padding: 0 15px;
-  border: 1px solid rgba(255, 255, 255, .22);
+  border: 0;
   border-radius: var(--radius-md);
   background: rgba(247, 253, 250, .94);
   color: #103641;
@@ -342,23 +340,27 @@ summary:focus-visible {
   left: 34px;
   z-index: 11;
   display: grid;
-  width: 82px;
-  padding: 7px 5px;
+  width: 118px;
+  padding: 8px 6px;
   border-radius: var(--radius-md);
   transform: translateY(-50%);
 }
 
 .marine-tool-dock button, .marine-tool-panel button {
   display: grid;
-  min-height: 60px;
-  padding: 6px 3px;
-  place-items: center;
-  border: 1px solid transparent;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 62px;
+  padding: 7px 8px;
+  align-items: center;
+  justify-items: start;
+  gap: 8px;
+  border: 0;
   border-radius: 13px;
   background: transparent;
   color: rgba(245, 252, 250, .72);
   font-size: 11px;
   line-height: 1.25;
+  text-align: left;
   cursor: pointer;
   transition: background 150ms ease, color 150ms ease;
 }
@@ -369,12 +371,20 @@ summary:focus-visible {
 }
 .marine-tool-dock button[aria-pressed='true'], .marine-tool-panel button[aria-pressed='true'] {
   background: rgba(160,221,235,.11);
-  border-color: rgba(190,235,244,.12);
   color: #fff;
 }
 
 .marine-tool-dock button span {
-  max-width: 64px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.marine-tool-dock button small,
+.marine-tool-panel button small {
+  color: rgba(245, 252, 250, .5);
+  font: 8px/1.2 var(--font-mono);
+  letter-spacing: .02em;
 }
 
 .marine-tool-panel { display: none; }
@@ -488,7 +498,7 @@ summary:focus-visible {
   max-width: min(560px, calc(100vw - 28px));
   min-height: 42px;
   padding: 8px 9px 8px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 0;
   border-radius: 14px;
   background: rgba(8, 35, 45, 0.38);
   color: rgba(250, 255, 253, 0.88);
@@ -526,7 +536,7 @@ summary:focus-visible {
 .ask-orca__suggestions button {
   min-height: 44px;
   padding: 0 15px;
-  border: 1px solid rgba(255, 255, 255, .11);
+  border: 0;
   border-radius: 999px;
   background: rgba(5, 31, 44, .24);
   color: rgba(245, 252, 250, .78);
@@ -534,11 +544,10 @@ summary:focus-visible {
   white-space: nowrap;
   cursor: pointer;
   backdrop-filter: blur(var(--glass-chip-blur)) saturate(130%);
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background 150ms ease, color 150ms ease;
 }
 
 .ask-orca__suggestions button:hover {
-  border-color: rgba(255, 255, 255, 0.3);
   background: rgba(8, 40, 52, 0.4);
   color: #ffffff;
 }
@@ -568,7 +577,7 @@ summary:focus-visible {
   .marine-tool-panel summary { display: flex; align-items: center; gap: 8px; width: max-content; min-height: 44px; padding: 0 13px; border-radius: var(--radius-sm); color: var(--foam); font-size: 11px; cursor: pointer; list-style: none; }
   .marine-tool-panel summary::-webkit-details-marker { display: none; }
   .marine-tool-panel[open] > div { display: grid; width: 200px; margin-top: 7px; padding: 6px; border-radius: var(--radius-md); background-color: rgba(4,29,43,.46); }
-  .marine-tool-panel button { grid-template-columns: 30px 1fr; min-height: 52px; padding: 0 10px; text-align: left; justify-items: start; }
+  .marine-tool-panel button { grid-template-columns: 30px 1fr; min-height: 56px; padding: 0 10px; text-align: left; justify-items: start; }
 
   .ask-orca { bottom: max(20px, env(safe-area-inset-bottom)); width: calc(100% - 40px); height: 64px; }
   .ask-orca__surface { border-radius: 21px; }

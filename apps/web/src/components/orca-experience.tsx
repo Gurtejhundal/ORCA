@@ -5,14 +5,8 @@ import type { ConversationContext, DecisionResponse } from '@orca/contracts';
 import dynamic from 'next/dynamic';
 import {
   ArrowUp,
-  Database,
-  Fish,
   History,
-  Languages,
   Map,
-  Route,
-  Satellite,
-  ShieldCheck,
   Trash2,
   Volume2,
   Waves,
@@ -115,10 +109,10 @@ const EVIDENCE_COPY = {
 } as const;
 
 const CAPABILITIES = [
-  { icon: Fish, en: 'Fishing intelligence', hi: 'मत्स्य बुद्धिमत्ता', detailEn: 'PFZ · SST · chlorophyll · opportunity', detailHi: 'PFZ · SST · क्लोरोफिल · संभावना', signalEn: 'PFZ–02', signalHi: 'PFZ–02' },
-  { icon: ShieldCheck, en: 'Voyage safety', hi: 'यात्रा सुरक्षा', detailEn: 'Waves · wind · hazards · warnings', detailHi: 'लहरें · हवा · खतरे · चेतावनी', signalEn: '86 / 100', signalHi: '86 / 100' },
-  { icon: Route, en: 'Route intelligence', hi: 'मार्ग बुद्धिमत्ता', detailEn: 'Safer passages · boundaries · route risk', detailHi: 'सुरक्षित मार्ग · सीमाएँ · मार्ग जोखिम', signalEn: 'LOW RISK', signalHi: 'कम जोखिम' },
-  { icon: Languages, en: 'Conversational reasoning', hi: 'संवादी तर्क', detailEn: 'Hindi · English · context · explanations', detailHi: 'हिंदी · अंग्रेज़ी · संदर्भ · स्पष्टीकरण', signalEn: '2 LANG', signalHi: '2 भाषाएँ' },
+  { en: 'Fishing intelligence', hi: 'मत्स्य बुद्धिमत्ता', detailEn: 'PFZ · SST · chlorophyll · opportunity', detailHi: 'PFZ · SST · क्लोरोफिल · संभावना', signalEn: 'PFZ-02', signalHi: 'PFZ-02' },
+  { en: 'Voyage safety', hi: 'यात्रा सुरक्षा', detailEn: 'Waves · wind · hazards · warnings', detailHi: 'लहरें · हवा · खतरे · चेतावनी', signalEn: '86 / 100', signalHi: '86 / 100' },
+  { en: 'Route intelligence', hi: 'मार्ग बुद्धिमत्ता', detailEn: 'Safer passages · boundaries · route risk', detailHi: 'सुरक्षित मार्ग · सीमाएँ · मार्ग जोखिम', signalEn: 'LOW RISK', signalHi: 'कम जोखिम' },
+  { en: 'Conversational reasoning', hi: 'संवादी तर्क', detailEn: 'Hindi · English · context · explanations', detailHi: 'हिंदी · अंग्रेज़ी · संदर्भ · स्पष्टीकरण', signalEn: '2 LANG', signalHi: '2 भाषाएँ' },
 ] as const;
 
 async function speakAnswer(text: string, language: string) {
@@ -218,10 +212,10 @@ function ChatView({ turns, pending, language, onSubmit, onOpenMap, onDelete }: {
 function EvidenceView({ language }: { language: AppLanguage }) {
   const copy = EVIDENCE_COPY[language];
   const pipeline = [
-    { icon: Satellite, title: 'INCOIS · IMD · Copernicus · GEBCO', detail: language === 'hi' ? 'समुद्री स्रोत' : 'Marine sources' },
-    { icon: Database, title: language === 'hi' ? 'एकीकृत प्रमाण' : 'Normalized evidence', detail: language === 'hi' ? 'स्रोत · मान · वैध समय' : 'SOURCE · VALUE · VALID TIME' },
-    { icon: Waves, title: language === 'hi' ? 'ताज़गी जाँच' : 'Freshness check', detail: language === 'hi' ? 'प्रत्यक्ष · संचित · स्थिर · डेमो' : 'LIVE · CACHED · STATIC · DEMO' },
-    { icon: ShieldCheck, title: language === 'hi' ? 'सुरक्षा पहले' : 'Safety gates first', detail: language === 'hi' ? 'रैंकिंग से पहले रोक' : 'Hard stops before ranking' },
+    { title: 'INCOIS · IMD · Copernicus · GEBCO', detail: language === 'hi' ? 'समुद्री स्रोत' : 'Marine sources' },
+    { title: language === 'hi' ? 'एकीकृत प्रमाण' : 'Normalized evidence', detail: language === 'hi' ? 'स्रोत · मान · वैध समय' : 'SOURCE · VALUE · VALID TIME' },
+    { title: language === 'hi' ? 'ताज़गी जाँच' : 'Freshness check', detail: language === 'hi' ? 'प्रत्यक्ष · संचित · स्थिर · डेमो' : 'LIVE · CACHED · STATIC · DEMO' },
+    { title: language === 'hi' ? 'सुरक्षा पहले' : 'Safety gates first', detail: language === 'hi' ? 'रैंकिंग से पहले रोक' : 'Hard stops before ranking' },
   ];
 
   return (
@@ -233,10 +227,9 @@ function EvidenceView({ language }: { language: AppLanguage }) {
       </header>
       <div className="evidence-layout">
         <section className="capability-list" aria-label={copy.capabilities}>
-          {CAPABILITIES.map(({ icon: Icon, en, hi, detailEn, detailHi, signalEn, signalHi }, index) => (
+          {CAPABILITIES.map(({ en, hi, detailEn, detailHi, signalEn, signalHi }, index) => (
             <article key={en}>
               <span>0{index + 1}</span>
-              <Icon aria-hidden="true" />
               <div><h2>{language === 'hi' ? hi : en}</h2><p>{language === 'hi' ? detailHi : detailEn}</p></div>
               <strong>{language === 'hi' ? signalHi : signalEn}</strong>
             </article>
@@ -244,8 +237,8 @@ function EvidenceView({ language }: { language: AppLanguage }) {
         </section>
         <section className="evidence-pipeline" aria-label={copy.sources}>
           <h2>{copy.sources}</h2>
-          {pipeline.map(({ icon: Icon, title, detail }) => (
-            <div key={title}><Icon aria-hidden="true" /><span><strong>{title}</strong><small>{detail}</small></span></div>
+          {pipeline.map(({ title, detail }) => (
+            <div key={title}><span><strong>{title}</strong><small>{detail}</small></span></div>
           ))}
           <pre aria-label={copy.example}><code>{`{
   "parameter": "wave_height",
@@ -384,8 +377,8 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
       const response = await marineApi.chat({ message: query, session_id: sessionId.current, language });
       sessionId.current = response.session_id;
       setTurns((current) => current.map((turn) => turn.id === id ? { ...turn, response } : turn));
-    } catch (error) {
-      const message = language === 'hi' ? CHAT_COPY.hi.error : error instanceof Error ? error.message : CHAT_COPY.en.error;
+    } catch {
+      const message = language === 'hi' ? CHAT_COPY.hi.error : CHAT_COPY.en.error;
       setTurns((current) => current.map((turn) => turn.id === id ? { ...turn, error: message } : turn));
     } finally {
       setPending(false);
