@@ -35,6 +35,12 @@
 .app-shell .map-workspace { min-width: 0; }
 .app-shell .marine-map { position: relative; height: 610px; min-height: 400px; overflow: hidden; border-radius: 12px; }
 .app-shell .map-canvas { position: absolute; inset: 0; }
+.app-shell .map-canvas .maplibregl-map,
+.app-shell .map-canvas .maplibregl-canvas-container,
+.app-shell .map-canvas .maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
 .app-shell .map-title { position: absolute; top: 20px; left: 20px; pointer-events: none; }
 .app-shell .map-title span { font-size: 12px; }
 .app-shell .map-north { position: absolute; top: 24px; right: 24px; text-align: center; pointer-events: none; }

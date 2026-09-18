@@ -21,7 +21,12 @@ class GeospatialAgent(BaseAgent):
 
         if action in ('check_candidate_zones', 'get_intersections'):
             candidates = input_data.context.get('candidates', [])
-            zones = await self.service.zones(marine_loc, radius=150.0)
+            warnings = []
+            try:
+                zones = await self.service.zones(marine_loc, radius=150.0)
+            except Exception as exc:
+                zones = []
+                warnings.append(f'Boundary coverage unavailable: {exc}')
 
             intersections = []
             safe_candidates = []
@@ -70,6 +75,7 @@ class GeospatialAgent(BaseAgent):
                     'zones_evaluated': len(zones),
                 },
                 evidence=evidence,
+                warnings=warnings,
                 confidence=0.98,
             )
 

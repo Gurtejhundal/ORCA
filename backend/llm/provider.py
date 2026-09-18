@@ -106,6 +106,8 @@ class MockLLMProvider(LLMProvider):
                 required_caps = ['pfz', 'hazards', 'geospatial']
             elif any(k in lower_prompt for k in [
                 'where should i fish', 'where can i fish', 'where to fish',
+                'which pfz should i go', 'which pfz to go', 'recommend pfz',
+                'best pfz', 'safest pfz', 'should i go to pfz',
                 'कहाँ मछली', 'मछली कहाँ',
             ]):
                 intent = 'nearest_safe_pfz'

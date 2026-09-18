@@ -30,6 +30,16 @@ class PFZAgent(BaseAgent):
             resp = await self.service.pfz(
                 time=req_time, location=marine_loc, radius=radius, limit=limit
             )
+            warnings = list(resp.missing_sources)
+            if not resp.results and marine_loc and radius is not None:
+                resp = await self.service.pfz(
+                    time=req_time, location=marine_loc, radius=None, limit=limit
+                )
+                warnings.extend(resp.missing_sources)
+                if resp.results:
+                    warnings.append(
+                        f'No current PFZ found within {radius:g} km; showing nearest valid official PFZ advisories.'
+                    )
             zones = resp.results
             candidates = []
             evidence = []
@@ -71,9 +81,9 @@ class PFZAgent(BaseAgent):
                 status=status,
                 data={'candidates': candidates, 'count': len(candidates)},
                 evidence=evidence,
-                warnings=resp.missing_sources,
+                warnings=list(dict.fromkeys(warnings)),
                 confidence=0.95 if candidates else 0.5,
-                errors=resp.missing_sources if not candidates else [],
+                errors=list(dict.fromkeys(warnings)) if not candidates else [],
             )
 
         elif action == 'get_zone_details':

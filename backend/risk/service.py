@@ -151,25 +151,33 @@ class MarineRiskService:
 
         # 1. Fetch PFZ candidates near origin
         pfz_resp = await self.service.pfz(time=requested_time, location=orig, radius=150.0, limit=limit * 2)
+        if not pfz_resp.results and not self.service.settings.demo_mode:
+            pfz_resp = await self.service.pfz(time=requested_time, location=orig, radius=None, limit=limit * 2)
         candidates = pfz_resp.results
 
         # Fallback to demo candidate zones if empty in demo mode
         if not candidates and self.service.settings.demo_mode:
             from backend.data_sources.demo import synthetic_pfz
             candidates = synthetic_pfz()
+        analysis_limit = min(limit, 3) if not self.service.settings.demo_mode else limit
+        candidates = candidates[:analysis_limit]
 
         # 2. Fetch active hazard zones for intersection checks
-        zones = await self.service.zones(orig, radius=200.0)
+        try:
+            zones = await self.service.zones(orig, radius=200.0)
+        except Exception as exc:
+            logger.warning('pfz_rank_boundary_lookup_unavailable: %s', exc)
+            zones = []
 
         ranked: list[RankedPFZCandidate] = []
         excluded: list[RankedPFZCandidate] = []
         all_evidence: list[dict] = []
         confidences: list[float] = []
 
-        for cand in candidates:
+        async def evaluate_candidate(cand):
             cand_geom = cand.geometry
             if not cand_geom:
-                continue
+                return None
             from shapely.geometry import shape
             from pyproj import Geod
             point = shape(cand_geom).representative_point()
@@ -237,15 +245,25 @@ class MarineRiskService:
                 source=cand.source,
             )
 
-            if cand_exclusions:
+            return candidate_obj, cand_risk.confidence
+
+        evaluated = await asyncio.gather(*(evaluate_candidate(cand) for cand in candidates))
+        for item in evaluated:
+            if item is None:
+                continue
+            candidate_obj, confidence = item
+            if candidate_obj.excluded:
                 excluded.append(candidate_obj)
             else:
                 ranked.append(candidate_obj)
-                confidences.append(cand_risk.confidence)
+                confidences.append(confidence)
 
         # 3. Sort ranked candidates by ranking_score descending
         ranked.sort(key=lambda c: (-c.ranking_score, c.risk_score, c.distance_km))
         for idx, r in enumerate(ranked):
+            r.rank = idx + 1
+        excluded.sort(key=lambda c: (c.distance_km, c.risk_score, -c.ranking_score))
+        for idx, r in enumerate(excluded):
             r.rank = idx + 1
 
         recommended = ranked[0] if ranked else None

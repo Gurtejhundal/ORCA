@@ -37,11 +37,29 @@ export function DataStatusBadge() {
 
   const mode = status?.mode ?? freshness?.mode ?? 'unavailable';
   const isDemo = mode === 'demo';
+  const coreDatasets = ['pfz', 'ocean', 'weather', 'sst'];
+  const coreStates = coreDatasets.map((key) => freshness?.datasets[key]?.freshness_status);
+  const coreCurrent = coreStates.filter((state) => state === 'current' || state === 'aging').length;
+  const coreUnavailable = coreStates.filter((state) => !state || state === 'unavailable' || state === 'stale').length;
+  const systemOnline = status?.backend === 'online' && status?.database === 'online' && status?.postgis === 'online';
+  const displayStatus = isDemo
+    ? 'demo'
+    : systemOnline && coreCurrent > 0 && coreUnavailable > 0
+      ? 'partial'
+      : systemOnline && coreCurrent === coreDatasets.length
+        ? 'current'
+        : freshness?.overall_status ?? 'checking';
+  const label = isDemo
+    ? 'Demo Replay'
+    : mode === 'unavailable'
+      ? 'Status unavailable'
+      : `Live mode · ${displayStatus}`;
 
   const dotColor = (st?: string) => {
     switch (st) {
       case 'current':
         return '#7de6c6';
+      case 'partial':
       case 'aging':
         return '#e7a569';
       case 'stale':
@@ -64,10 +82,10 @@ export function DataStatusBadge() {
         >
           <span
             className="w-2 h-2 rounded-full animate-pulse"
-            style={{ backgroundColor: dotColor(freshness?.overall_status) }}
+            style={{ backgroundColor: dotColor(displayStatus) }}
           />
           <span className="font-semibold tracking-wide uppercase">
-            {isDemo ? 'Demo Replay' : mode === 'unavailable' ? 'Status unavailable' : `Live mode · ${freshness?.overall_status ?? 'checking'}`}
+            {label}
           </span>
           <Activity size={12} className="opacity-60 ml-0.5" />
         </button>

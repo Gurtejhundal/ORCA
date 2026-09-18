@@ -9,7 +9,13 @@ from backend.core.config import Settings
 from backend.core.exceptions import SourceUnavailable
 from backend.schemas.marine import Location, Observation
 
-ALLOWED_HOSTS = {'incois.gov.in', 'erddap.incois.gov.in', 'api.open-meteo.com', 'marine-api.open-meteo.com'}
+ALLOWED_HOSTS = {
+    'incois.gov.in',
+    'erddap.incois.gov.in',
+    'api.open-meteo.com',
+    'marine-api.open-meteo.com',
+    'api.met.no',
+}
 logger = logging.getLogger(__name__)
 
 
@@ -36,10 +42,11 @@ class SafeHTTP:
                     return httpx.Response(response.status_code, headers=headers,
                                           content=b''.join(parts), request=response.request)
             except httpx.HTTPError as exc:
-                retryable = not isinstance(exc, httpx.HTTPStatusError) or exc.response.status_code in (429, 500, 502, 503, 504)
+                retryable = not isinstance(exc, httpx.HTTPStatusError) or exc.response.status_code in (500, 502, 503, 504)
                 if not retryable or attempt == self.settings.http_retries:
                     logger.warning('source_request_failed host=%s error=%s', target.hostname, type(exc).__name__)
-                    raise SourceUnavailable(target.hostname, type(exc).__name__) from exc
+                    reason = f'HTTP {exc.response.status_code}' if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__
+                    raise SourceUnavailable(target.hostname, reason) from exc
                 await asyncio.sleep(0.25 * 2**attempt)
         raise SourceUnavailable(target.hostname, 'Retry budget exhausted')
 

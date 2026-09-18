@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 import uuid
 from contextlib import asynccontextmanager
 import httpx
@@ -15,6 +16,7 @@ from backend.cache.memory import MemoryCache
 from backend.data_sources.base import SafeHTTP
 from backend.data_sources.registry import SourceRegistry
 from backend.data_sources.weather.open_meteo import OpenMeteo
+from backend.data_sources.weather.met_no import MetNorwayWeather
 from backend.data_sources.incois.osf import IncoisOSF
 from backend.data_sources.incois.erddap import IncoisERDDAP
 from backend.data_sources.incois.pfz_wfs import IncoisPFZWFS
@@ -35,6 +37,9 @@ from backend.routing.route_service import MarineRouteService
 from backend.geofence.service import GeofenceService
 from backend.simulation.manager import SimulationManager
 
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 def create_app(config: Settings | None = None) -> FastAPI:
     config = config or settings
@@ -49,7 +54,7 @@ def create_app(config: Settings | None = None) -> FastAPI:
             http = SafeHTTP(config, client)
             registry = SourceRegistry(cache)
             registry.register('ocean', IncoisOSF(http, cache), IncoisERDDAP(http), OpenMeteo(http, marine=True))
-            registry.register('weather', OpenMeteo(http))
+            registry.register('weather', OpenMeteo(http), MetNorwayWeather(http))
             repo = Repository(db)
             app.state.repository = repo
             marine_svc = MarineService(config, registry, repo, IncoisPFZWFS(http))

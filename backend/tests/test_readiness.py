@@ -96,8 +96,12 @@ def test_mock_intent_recognizes_natural_fishing_question():
     import asyncio
     from backend.agents.intent_agent import IntentAgent
     from backend.llm.provider import MockLLMProvider
-    result = asyncio.run(IntentAgent(MockLLMProvider()).detect_intent(
+    agent = IntentAgent(MockLLMProvider())
+    result = asyncio.run(agent.detect_intent(
         'Where should I fish tomorrow morning near Nagapattinam?', {}))
+    assert result.intent == 'nearest_safe_pfz'
+    result = asyncio.run(agent.detect_intent(
+        'Which PFZ should I go to near Nagapattinam today?', {}))
     assert result.intent == 'nearest_safe_pfz'
 
 

@@ -17,6 +17,9 @@ class SourceRegistry:
     async def fetch(self, group: str, location: Location, time: datetime, ttl: int) -> tuple[list[Observation], list[str]]:
         async def one(adapter):
             key = f'{adapter.name}:{group}:{location.lat:.6f}:{location.lon:.6f}:{time.isoformat()}'
+            provider_failed = self.cache.get('failure:provider:' + adapter.name)
+            if provider_failed:
+                return [], provider_failed['value']
             failed = self.cache.get('failure:' + key)
             if failed:
                 return [], failed['value']
@@ -25,6 +28,8 @@ class SourceRegistry:
             except SourceUnavailable as exc:
                 error = f'{adapter.name}: {exc.reason}'
                 self.cache.put('failure:' + key, error, 30)
+                if exc.reason in ('HTTP 429', 'ConnectError', 'ReadTimeout'):
+                    self.cache.put('failure:provider:' + adapter.name, error, 120)
                 return [], error
         results = await asyncio.gather(*(one(a) for a in self.groups.get(group, [])))
         merged: dict[str, Observation] = {}

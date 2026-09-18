@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     satellite_ttl: int = Field(21600, ge=1, le=86400)
     pfz_ttl: int = Field(21600, ge=1, le=86400)
     open_meteo_enabled: bool = True
+    met_no_enabled: bool = True
     incois_erddap_enabled: bool = True
     # Trusted, locally reviewed normalized exports; never a client supplied URL.
     pfz_import_file: str = ''

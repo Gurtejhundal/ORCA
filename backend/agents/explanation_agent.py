@@ -150,6 +150,7 @@ Generate a structured explanation in language '{language}'.
         analysis = analysis or {}
         risk = analysis.get('risk')
         ranked = analysis.get('recommended_pfz') or recommended_pfz
+        nearest_candidate = analysis.get('nearest_pfz_candidate')
         route = analysis.get('route')
         geofence = analysis.get('geofence')
 
@@ -161,6 +162,10 @@ Generate a structured explanation in language '{language}'.
             if ranked:
                 direct.append(
                     f"शीर्ष पात्र PFZ {ranked.get('name')} है, जो लगभग {ranked.get('distance_km')} किमी दूर है।"
+                )
+            elif nearest_candidate:
+                direct.append(
+                    f"निकटतम वर्तमान PFZ {nearest_candidate.get('name')} लगभग {nearest_candidate.get('distance_km')} किमी दूर है, लेकिन यह सुरक्षा जांच पास नहीं कर सका।"
                 )
             elif intent in ('nearest_safe_pfz', 'nearest_pfz'):
                 direct.append('कोई PFZ सुरक्षा जांच पास नहीं कर सका, इसलिए कोई गंतव्य सुझाया नहीं गया है।')
@@ -191,6 +196,10 @@ Generate a structured explanation in language '{language}'.
             if ranked:
                 direct.append(
                     f"The top eligible PFZ is {ranked.get('name')}, approximately {ranked.get('distance_km')} km away."
+                )
+            elif nearest_candidate:
+                direct.append(
+                    f"The nearest current official PFZ is {nearest_candidate.get('name')}, approximately {nearest_candidate.get('distance_km')} km away, but it is not safety-cleared."
                 )
             elif intent in ('nearest_safe_pfz', 'nearest_pfz'):
                 direct.append('No PFZ passed the safety gates, so no destination is recommended.')

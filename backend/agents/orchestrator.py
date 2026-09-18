@@ -401,7 +401,10 @@ class MarineOrchestrator:
                     origin={'lat': loc_ref.lat, 'lon': loc_ref.lon},
                     requested_time=resolved_dt,
                 )
-                ranked_candidates_payload = [candidate.model_dump() for candidate in ranked_res.ranked_candidates]
+                ranked_candidates_payload = [
+                    candidate.model_dump()
+                    for candidate in [*ranked_res.ranked_candidates, *ranked_res.excluded_candidates]
+                ]
                 context.selected_pfz = None
                 if ranked_res.ranked_candidates:
                     top_cand = ranked_res.ranked_candidates[0]
@@ -498,6 +501,7 @@ class MarineOrchestrator:
                 'status': geofence_payload['status'],
                 'recommended_action': geofence_payload.get('recommended_action'),
             } if geofence_payload else None),
+            'nearest_pfz_candidate': ranked_candidates_payload[0] if ranked_candidates_payload else None,
         }
 
         # 13. Generate the user-facing explanation from the final deterministic result.

@@ -36,7 +36,7 @@ export function PFZRecommendationCard({
           </div>
           <div>
             <span className="text-[10px] font-semibold tracking-wider text-white/50 uppercase">
-              Recommended Fishing Zone
+              {isSafe ? 'Recommended Fishing Zone' : 'Nearest Official PFZ'}
             </span>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               {candidate.name}
@@ -80,7 +80,7 @@ export function PFZRecommendationCard({
             }`}
           >
             {isSafe ? <Check size={12} /> : <X size={12} />}
-            {isSafe ? 'Eligible for review' : 'Excluded'}
+            {isSafe ? 'Eligible for review' : 'Not safety-cleared'}
           </span>
         </div>
       </div>

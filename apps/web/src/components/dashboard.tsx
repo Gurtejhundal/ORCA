@@ -328,8 +328,9 @@ export function Dashboard({
         setBackendAnswer(agentChat.answer);
         setMapActions(agentChat.map_actions);
         setNotice(agentChat.warnings.join(' · '));
-        setRecommendedPFZ(agentChat.data.ranked_pfz ?? null);
-        setAllPFZCandidates(agentChat.data.ranked_pfz_candidates ?? []);
+        const candidates = agentChat.data.ranked_pfz_candidates ?? [];
+        setRecommendedPFZ(agentChat.data.ranked_pfz ?? candidates[0] ?? null);
+        setAllPFZCandidates(candidates);
         if (agentChat.risk) {
           setSafetyRisk(agentChat.risk.risk);
         }
