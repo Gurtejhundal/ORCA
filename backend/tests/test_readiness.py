@@ -209,6 +209,21 @@ def test_zero_longitude_gps_is_preserved():
     assert location and location.lon == 0
 
 
+@pytest.mark.parametrize('query,expected_name,expected_lat,expected_lon', [
+    ('Where should I fish near Diu today?', 'Diu', 20.714, 70.987),
+    ('Show PFZ near Pondicherry', 'Puducherry', 11.934, 79.830),
+    ('What is the wave height near Kolkata?', 'Kolkata', 22.572, 88.363),
+    ('Where should I fish near Pune?', 'Pune', 18.520, 73.857),
+])
+def test_named_city_overrides_default_or_gps_location(query, expected_name, expected_lat, expected_lon):
+    location = resolve_location(query, explicit_location={'lat': 10.767, 'lon': 79.872})
+    assert location is not None
+    assert expected_name in location.name
+    assert location.source == 'named'
+    assert location.lat == pytest.approx(expected_lat, abs=0.001)
+    assert location.lon == pytest.approx(expected_lon, abs=0.001)
+
+
 def test_nearby_restricted_zone_is_not_an_intersection():
     config = Settings(_env_file=None, database_url='', demo_mode=True)
     with TestClient(create_app(config)) as demo_client:

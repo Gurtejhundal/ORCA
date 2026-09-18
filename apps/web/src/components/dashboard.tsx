@@ -327,6 +327,10 @@ export function Dashboard({
         setMessage(query);
         setBackendAnswer(agentChat.answer);
         setMapActions(agentChat.map_actions);
+        if (agentChat.location && Number.isFinite(agentChat.location.lat) && Number.isFinite(agentChat.location.lon)) {
+          setCurrentLocation({ lat: agentChat.location.lat, lon: agentChat.location.lon });
+          setGpsActive(false);
+        }
         setNotice(agentChat.warnings.join(' · '));
         const candidates = agentChat.data.ranked_pfz_candidates ?? [];
         setRecommendedPFZ(agentChat.data.ranked_pfz ?? candidates[0] ?? null);

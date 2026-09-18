@@ -90,6 +90,48 @@ COASTAL_LOCATIONS: dict[str, tuple[float, float, str]] = {
     # Islands
     'port blair': (11.623, 92.726, 'Port Blair, Andaman'),
     'kavaratti': (10.566, 72.641, 'Kavaratti, Lakshadweep'),
+
+    # Additional coastal cities, landing centers and common demo query places
+    'dwarka': (22.239, 68.968, 'Dwarka, Gujarat'),
+    'diu': (20.714, 70.987, 'Diu'),
+    'surat': (21.170, 72.831, 'Surat, Gujarat'),
+    'hazira': (21.116, 72.642, 'Hazira, Gujarat'),
+    'bhavnagar': (21.764, 72.151, 'Bhavnagar, Gujarat'),
+    'vasai': (19.391, 72.839, 'Vasai, Maharashtra'),
+    'dahanu': (19.990, 72.743, 'Dahanu, Maharashtra'),
+    'murud': (18.328, 72.963, 'Murud, Maharashtra'),
+    'vengurla': (15.861, 73.631, 'Vengurla, Maharashtra'),
+    'udupi': (13.341, 74.742, 'Udupi / Malpe, Karnataka'),
+    'kasaragod': (12.499, 74.987, 'Kasaragod, Kerala'),
+    'alappuzha': (9.498, 76.338, 'Alappuzha, Kerala'),
+    'alleppey': (9.498, 76.338, 'Alappuzha, Kerala'),
+    'ponnani': (10.767, 75.925, 'Ponnani, Kerala'),
+    'pondicherry': (11.934, 79.830, 'Puducherry'),
+    'puducherry': (11.934, 79.830, 'Puducherry'),
+    'karaikal': (10.925, 79.838, 'Karaikal, Puducherry'),
+    'ennore': (13.214, 80.321, 'Ennore, Tamil Nadu'),
+    'mahabalipuram': (12.620, 80.194, 'Mahabalipuram, Tamil Nadu'),
+    'mamallapuram': (12.620, 80.194, 'Mahabalipuram, Tamil Nadu'),
+    'pamban': (9.279, 79.214, 'Pamban, Tamil Nadu'),
+    'mandapam': (9.276, 79.123, 'Mandapam, Tamil Nadu'),
+    'nellore': (14.442, 79.986, 'Nellore, Andhra Pradesh'),
+    'ongole': (15.505, 80.049, 'Ongole, Andhra Pradesh'),
+    'srikakulam': (18.296, 83.897, 'Srikakulam coast, Andhra Pradesh'),
+    'chilika': (19.722, 85.327, 'Chilika coast, Odisha'),
+    'balasore': (21.493, 86.933, 'Balasore coast, Odisha'),
+    'kolkata': (22.572, 88.363, 'Kolkata, West Bengal'),
+    'sagar island': (21.652, 88.075, 'Sagar Island, West Bengal'),
+    'sundarbans': (21.949, 89.183, 'Sundarbans, West Bengal'),
+
+    # Inland/common judge demo locations. These are treated as the user's
+    # declared position; marine/PFZ responses still preserve actual distances.
+    'ahmedabad': (23.023, 72.571, 'Ahmedabad, Gujarat'),
+    'pune': (18.520, 73.857, 'Pune, Maharashtra'),
+    'bengaluru': (12.972, 77.594, 'Bengaluru, Karnataka'),
+    'bangalore': (12.972, 77.594, 'Bengaluru, Karnataka'),
+    'hyderabad': (17.385, 78.486, 'Hyderabad, Telangana'),
+    'delhi': (28.613, 77.209, 'Delhi'),
+    'jaipur': (26.912, 75.787, 'Jaipur, Rajasthan'),
 }
 
 
@@ -123,16 +165,21 @@ def resolve_location(
     if coords:
         return LocationState(lat=coords[0], lon=coords[1], name=f"{coords[0]:.3f}°N, {coords[1]:.3f}°E", source='coordinates')
 
-    # 2. Named location from hint or text
+    # 2. Named location from hint or text. Longest names are checked first
+    # so "diamond harbour" wins before a shorter overlapping token.
+    query_lower = query.lower()
     candidates_to_check = []
     if named_hint:
         candidates_to_check.append(named_hint.lower().strip())
-    # Add words from query
-    query_lower = query.lower()
-    for name_key, (lat, lon, label) in COASTAL_LOCATIONS.items():
-        # Match word boundaries or substring in devanagari
-        if name_key in query_lower:
-            return LocationState(lat=lat, lon=lon, name=label, source='named')
+    candidates_to_check.append(query_lower)
+    for candidate_text in candidates_to_check:
+        for name_key, (lat, lon, label) in sorted(COASTAL_LOCATIONS.items(), key=lambda item: len(item[0]), reverse=True):
+            if any('\u0900' <= ch <= '\u097F' for ch in name_key):
+                matched = name_key in candidate_text
+            else:
+                matched = re.search(rf'(?<![a-z0-9]){re.escape(name_key)}(?![a-z0-9])', candidate_text) is not None
+            if matched:
+                return LocationState(lat=lat, lon=lon, name=label, source='named')
 
     # 3. Frontend GPS provided in request
     if explicit_location:
