@@ -252,8 +252,9 @@ def test_wfs_dates_and_malformed_schema():
     html = '<td>Forecast Date</td><td>Valid upto</td><td>7 SEP 2026</td><td>8 SEP 2026</td>'
     zone = adapter.normalize(raw,html,utcnow())[0]
     assert zone.source == 'INCOIS PFZ WFS'
-    assert zone.valid_until.isoformat() == '2026-09-08T00:00:00+05:30'
+    assert zone.valid_until.isoformat() == '2026-09-09T00:00:00+05:30'
     assert zone.metadata['validity_precision'] == 'date'
+    assert zone.metadata['valid_upto_date'] == '8 SEP 2026'
     with pytest.raises(ValueError): adapter.normalize(raw,html.replace('7 SEP','6 SEP'),utcnow())
     raw['numberReturned'] = 0
     with pytest.raises(ValueError): adapter.normalize(raw,html,utcnow())

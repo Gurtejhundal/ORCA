@@ -47,9 +47,14 @@ class IncoisPFZWFS:
         dates = re.search(r'Forecast Date\s+Valid upto\s+(\d{1,2} [A-Z]{3} \d{4})\s+(\d{1,2} [A-Z]{3} \d{4})', text)
         if not dates:
             raise ValueError('No dated validity table')
-        start, end = [datetime.strptime(d, '%d %b %Y').replace(tzinfo=IST) for d in dates.groups()]
-        if end <= start:
+        start, valid_through = [datetime.strptime(d, '%d %b %Y').replace(tzinfo=IST) for d in dates.groups()]
+        if valid_through < start:
             raise ValueError('Invalid date interval')
+        # INCOIS publishes date-only validity as "Valid upto DD MON YYYY".  That
+        # named calendar day is usable; model it as an exclusive boundary at
+        # midnight on the following day so the product is not discarded at the
+        # beginning of its stated valid-through date.
+        end = valid_through + timedelta(days=1)
         zones = []
         for feature in collection.features:
             p = feature.properties
@@ -63,7 +68,7 @@ class IncoisPFZWFS:
                 expires_at=min(end, fetched+timedelta(seconds=self.http.settings.pfz_ttl)),
                 metadata={'provider_properties':p,'advisory_reference':ADVISORY,
                     'forecast_date':dates[1], 'valid_upto_date':dates[2], 'validity_precision':'date',
-                    'validity_policy':'Conservative expiry at start of valid-upto date in Asia/Kolkata; exact hour is unpublished',
+                    'validity_policy':'Valid through the published valid-upto calendar date in Asia/Kolkata; exact hour is unpublished',
                     'quality':'official_advisory'}))
         return zones
 
@@ -75,6 +80,6 @@ class IncoisPFZWFS:
             zones = await self.fetch()
             usable = [z for z in zones if z.valid_from <= utcnow() < z.valid_until]
             return {'status':'online' if usable else 'expired_product', 'features':len(zones),
-                    'usable_features':len(usable), 'validity_policy':'conservative date boundary'}
+                    'usable_features':len(usable), 'validity_policy':'inclusive published valid-upto date'}
         except SourceUnavailable as exc:
             return {'status':'unavailable','reason':exc.reason}
