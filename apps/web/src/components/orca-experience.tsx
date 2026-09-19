@@ -11,7 +11,7 @@ import {
   Volume2,
   Waves,
 } from 'lucide-react';
-import { marineApi, type ChatResponsePayload } from '@/services/marine-api';
+import { marineApi, type ChatResponsePayload, type Location } from '@/services/marine-api';
 import { OrcaHero } from './hero/orca-hero';
 import { OrcaNav } from './hero/orca-nav';
 import type { AppLanguage } from './hero/ask-orca-bar';
@@ -31,6 +31,10 @@ type ChatTurn = {
 const Dashboard = dynamic(() => import('./dashboard').then((module) => module.Dashboard), {
   loading: () => <div className="workspace-skeleton" role="status" aria-label="Loading marine workspace"><i /><i /><i /></div>,
 });
+const MarineMap = dynamic(() => import('./marine-map').then((module) => module.MarineMap), {
+  ssr: false,
+  loading: () => <div className="chat-map-preview__loading" role="status">Loading configured map…</div>,
+});
 
 const CHAT_STORAGE_KEY = 'orca-recent-chat-v1';
 
@@ -45,6 +49,8 @@ const CHAT_COPY = {
     user: 'YOU',
     assistant: 'ORCA',
     map: 'Open workspace',
+    mapPreview: 'Configured map preview',
+    autoConfig: 'Auto applied map commands',
     mapGuide: 'The marine workspace is ready. Open it to inspect fishing zones, conditions, alerts, routes, and data layers.',
     guide: 'I can compare likely fishing zones, explain sea conditions and warnings, assess voyage risk, and open the marine workspace. Tell me your departure coast and time to begin.',
     recent: 'Recent conversation',
@@ -69,6 +75,8 @@ const CHAT_COPY = {
     user: 'आप',
     assistant: 'ORCA',
     map: 'कार्यस्थल खोलें',
+    mapPreview: 'सेट किया गया मानचित्र',
+    autoConfig: 'मानचित्र आदेश अपने-आप लागू हुए',
     mapGuide: 'समुद्री कार्यस्थल तैयार है। मछली क्षेत्र, स्थिति, चेतावनी, मार्ग और डेटा परतें देखने के लिए इसे खोलें।',
     guide: 'मैं मछली पकड़ने के संभावित क्षेत्रों की तुलना, समुद्री स्थिति और चेतावनियाँ समझाने, यात्रा जोखिम जाँचने और समुद्री कार्यस्थल खोलने में मदद कर सकता हूँ। अपना प्रस्थान तट और समय बताएँ।',
     recent: 'हाल की बातचीत',
@@ -133,6 +141,10 @@ async function speakAnswer(text: string, language: string) {
   }
 }
 
+function hasMapConfiguration(response: ChatResponsePayload) {
+  return response.map_actions.length > 0 || !!response.route || !!response.recommended_pfz || !!response.data.ranked_pfz;
+}
+
 function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; pending: boolean; onSubmit: (query: string) => Promise<void> }) {
   const [message, setMessage] = useState('');
   const copy = CHAT_COPY[language];
@@ -153,7 +165,23 @@ function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; 
   );
 }
 
-function ChatView({ turns, pending, language, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
+function ChatMapPreview({ response, decision, language, onOpenMap }: { response: ChatResponsePayload; decision?: DecisionResponse; language: AppLanguage; onOpenMap: () => void }) {
+  const copy = CHAT_COPY[language];
+  const location: Location | undefined = response.location ?? undefined;
+  if (!decision) return null;
+  return (
+    <section className="chat-map-preview" aria-label={copy.mapPreview}>
+      <div className="chat-map-preview__header">
+        <span><Map size={14} />{copy.mapPreview}</span>
+        <small>{response.map_actions.length || 1} {copy.autoConfig}</small>
+      </div>
+      <MarineMap decision={decision} onSelectZone={() => {}} currentLocation={location} mapActions={response.map_actions} language={language} />
+      <button className="chat-map-action" type="button" onClick={onOpenMap}><Map size={15} />{copy.map}</button>
+    </section>
+  );
+}
+
+function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; initialDecision?: DecisionResponse; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
   const endRef = useRef<HTMLDivElement>(null);
   const copy = CHAT_COPY[language];
   useEffect(() => {
@@ -193,8 +221,8 @@ function ChatView({ turns, pending, language, onSubmit, onOpenMap, onDelete }: {
                     </>}
                     <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
                   </div>
-                  {(turn.response.map_actions.length > 0 || turn.response.route || turn.response.recommended_pfz) && (
-                    <button className="chat-map-action" type="button" onClick={() => onOpenMap(turn.response)}><Map size={15} />{copy.map}</button>
+                  {hasMapConfiguration(turn.response) && (
+                    <ChatMapPreview response={turn.response} decision={initialDecision} language={language} onOpenMap={() => onOpenMap(turn.response)} />
                   )}
                 </div>
               )}
@@ -369,6 +397,10 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
     try {
       const response = await marineApi.chat({ message: query, session_id: sessionId.current, language });
       sessionId.current = response.session_id;
+      if (hasMapConfiguration(response)) {
+        setWorkspaceChat(response);
+        setActiveTool('fishing');
+      }
       setTurns((current) => current.map((turn) => turn.id === id ? { ...turn, response } : turn));
     } catch {
       const message = language === 'hi' ? CHAT_COPY.hi.error : CHAT_COPY.en.error;
@@ -399,7 +431,7 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
         <section className={`experience-overlay experience-overlay--${view}`} aria-label={language === 'hi' ? 'ORCA दृश्य' : `${view} view`}>
           <div className="experience-page">
             {view === 'chat' ? (
-              <ChatView turns={turns} pending={pending} language={language} onSubmit={runQuery} onOpenMap={(response) => { setWorkspaceChat(response); openView('workspace'); }} onDelete={deleteChat} />
+              <ChatView turns={turns} pending={pending} language={language} initialDecision={initialDecision} onSubmit={runQuery} onOpenMap={(response) => { setWorkspaceChat(response); openView('workspace'); }} onDelete={deleteChat} />
             ) : view === 'workspace' ? (
               initialDecision && initialContext ? <Dashboard initialDecision={initialDecision} initialContext={initialContext} embedded language={language} workspaceTool={activeTool ?? 'fishing'} initialChat={workspaceChat} /> : <div className="workspace-unavailable" role="alert"><Map size={24} /><h1>{language === 'hi' ? 'कार्यस्थल डेटा उपलब्ध नहीं है।' : 'Workspace data is unavailable.'}</h1><p>{language === 'hi' ? 'ORCA के निर्णय इंजन से दोबारा जुड़ने तक बातचीत उपलब्ध रहेगी।' : 'The conversation remains available while ORCA reconnects to the decision engine.'}</p></div>
             ) : (
