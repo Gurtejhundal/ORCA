@@ -95,6 +95,7 @@ export type ChatRequestPayload = {
   location?: Location;
   language?: string;
   developer_mode?: boolean;
+  history?: Array<{ role: string; content: string }>;
 };
 
 export type ChatResponsePayload = {

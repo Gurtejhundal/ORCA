@@ -404,7 +404,20 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
     setPending(true);
     setTurns((current) => [...current, { id, query }]);
     try {
-      const response = await marineApi.chat({ message: query, session_id: sessionId.current, language });
+      const history = turns
+        .filter((t) => t.response?.answer)
+        .slice(-4)
+        .flatMap((t) => [
+          { role: 'user', content: t.query },
+          { role: 'assistant', content: t.response!.answer },
+        ]);
+
+      const response = await marineApi.chat({
+        message: query,
+        session_id: sessionId.current,
+        language,
+        history,
+      });
       sessionId.current = response.session_id;
       if (hasMapConfiguration(response)) {
         setWorkspaceChat(response);

@@ -16,11 +16,22 @@ const OMNIROUTE_URL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/
 const OMNIROUTE_API_KEY = process.env.OMNIROUTE_API_KEY || 'Sk-d10ecaf9238c4fe2-5e7dfe-a1e3dfb6';
 const OMNIROUTE_MODEL = process.env.OMNIROUTE_MODEL || 'openrouter/cohere/north-mini-code:free';
 
-async function callOmniroute(prompt: string, systemPrompt?: string): Promise<string | null> {
+async function callOmniroute(
+  prompt: string,
+  systemPrompt?: string,
+  history?: Array<{ role: string; content: string }>,
+): Promise<string | null> {
   try {
     const messages: Array<{ role: string; content: string }> = [];
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
+    }
+    if (history && history.length > 0) {
+      for (const msg of history.slice(-4)) {
+        if (msg.role && msg.content) {
+          messages.push({ role: msg.role === 'assistant' ? 'assistant' : 'user', content: msg.content });
+        }
+      }
     }
     messages.push({ role: 'user', content: prompt });
 
@@ -53,7 +64,7 @@ async function callOmniroute(prompt: string, systemPrompt?: string): Promise<str
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, language = 'en', session_id, location = { lat: 10.767, lon: 79.872 } } = body;
+    const { message, language = 'en', session_id, location, history = [] } = body;
     const query = (message || '').trim();
     const sessionId = session_id || `session_${Date.now()}`;
     const runId = `run_${Date.now()}`;
@@ -76,16 +87,49 @@ export async function POST(req: NextRequest) {
       // Backend not running; proceed with multi-source engine + DuckDuckGo search + OmniRoute
     }
 
-    // 2. Classify intent
-    const isMarineTripQuery =
-      /\b(fish|fishing|pfz|where should i fish|safest route|departure|sail|passage|zone a|zone b|zone c|wave|waves|wind|swell|depth|draft|ship|traffic)\b/i.test(
+    // 2. Identify if this is a broad pan-India search vs specific single trip voyage
+    const isBroadIndiaSearch =
+      /\b(whole india|all india|across india|best in india|top fishing spots|where in india|where can i go for fish)\b/i.test(
         query,
-      ) || /(मछली कहाँ|मत्स्य क्षेत्र|सुरक्षित मार्ग|प्रस्थान|लहरें|हवा|गहराई)/.test(query);
+      ) || /(पूरे भारत|भारत में कहाँ|सर्वश्रेष्ठ मत्स्य क्षेत्र)/.test(query);
+
+    const isSpecificTripQuery =
+      !isBroadIndiaSearch &&
+      (/\b(depart|departure|sail|safest route|zone a|zone b|zone c|passage|my boat)\b/i.test(query) ||
+        /(प्रस्थान|सुरक्षित मार्ग|मेरी नाव)/.test(query));
 
     // Concurrently fetch DuckDuckGo search snippets + multi-source marine adapters
-    const searchPromise = searchDuckDuckGo(`${query} marine fishing weather INCOIS IMD`, 4);
+    const searchPromise = searchDuckDuckGo(`${query} fishing weather rules INCOIS IMD`, 4);
 
-    if (isMarineTripQuery) {
+    const systemPrompt = `You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert AI assistant for fishermen, anglers, and marine operators in India.
+
+STRICT FORMATTING & OUTPUT RULES:
+- NEVER output markdown tables or large paragraphs. Keep every answer clean, punchy, and easy to read.
+
+Case 1: If the user asks a broad discovery question (e.g. "where in whole India can I go for fishing", "best fishing spots in India", or asking for top recommendations):
+  1. Provide a crisp 1-sentence intro.
+  2. Provide a clean, numbered Top 5 list:
+     1. **[Location Name]** ([State/Region]) – [Key Target Species]. [1-line highlight and best season].
+     2. **[Location Name]** ([State/Region]) – [Key Target Species]. [1-line highlight and best season].
+     3. **[Location Name]** ([State/Region]) – [Key Target Species]. [1-line highlight and best season].
+     4. **[Location Name]** ([State/Region]) – [Key Target Species]. [1-line highlight and best season].
+     5. **[Location Name]** ([State/Region]) – [Key Target Species]. [1-line highlight and best season].
+  3. End strictly with: "Which one of these would you like to explore in detail?"
+
+Case 2: If the user selects one location, names a specific state/spot (e.g. "Punjab", "Goa", "Harike", "Andaman", or "1"), or asks for specific details:
+  1. Provide a 1-sentence summary of that chosen destination.
+  2. Provide a clean bulleted breakdown for that specific location:
+     • **Top Hotspots**: [1-2 specific rivers, lakes, or coastal zones]
+     • **Target Species**: [Fish names]
+     • **Best Season & Timing**: [Optimal months and time of day]
+     • **Gear & Techniques**: [Recommended tackle, line weight, or bait]
+     • **Permits & Guidelines**: [Local license rules]
+     • **Safety & Conditions**: [Water levels or weather tips]
+  3. End strictly with: "Would you like specific route coordinates, guide recommendations, or live weather checks for [Location]?"
+
+Language: Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
+
+    if (isSpecificTripQuery) {
       const [
         engineResult,
         searchResults,
@@ -130,28 +174,10 @@ export async function POST(req: NextRequest) {
             searchResults.map((r) => `- [${r.domain}] ${r.snippet}`).join('\n')
           : '';
 
-      const marineSystemPrompt = `You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert Indian marine decision assistant.
-
-STRICT FORMATTING & OUTPUT RULES:
-- NEVER output markdown tables or large blocks of text. Keep all responses clean, structured, and conversational.
-- If the user asks a broad question (e.g. "where in whole india can i go for fishing", "best fishing spots in India", or asking for options):
-  1. Give a crisp 1-sentence intro.
-  2. Present a clean, numbered Top 5 list:
-     1. **[Location Name]** ([State/Region]) – [Target Species]. [1-sentence brief highlight and best season].
-     2. ...
-  3. End by asking: "Which one of these would you like to explore in detail?"
-- If the user asks about or chooses a specific location or single trip:
-  1. Give a brief recommendation (1-2 sentences).
-  2. Provide a short bulleted list:
-     • **Target Species & Zone**: [1 line]
-     • **Sea Conditions**: Waves [X]m, Depth [Y]m, Swell [Z]s (from verified sensor feeds)
-     • **Key Tips & Safety**: [1 line]
-  3. End by asking if they want to plot the route or check harbor departure times.
-- Language: Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
-
       const omniResponse = await callOmniroute(
         `User query: "${query}"\n\nDecision Result:\n${baseAnswer}${multiSourceContext}${searchContext}\n\nFormat the response strictly following the formatting rules.`,
-        marineSystemPrompt,
+        systemPrompt,
+        history,
       );
 
       const finalAnswer = omniResponse || baseAnswer;
@@ -306,7 +332,7 @@ STRICT FORMATTING & OUTPUT RULES:
       return NextResponse.json(responsePayload);
     }
 
-    // 3. General or information query — augmented with DuckDuckGo search + multi-source knowledge
+    // 3. General, discovery, or drill-down query — augmented with DuckDuckGo search + multi-source knowledge
     const searchResults = await searchPromise;
     const searchSnippets =
       searchResults.length > 0
@@ -316,27 +342,9 @@ STRICT FORMATTING & OUTPUT RULES:
             .join('\n\n')
         : '';
 
-    const systemPrompt = `You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert AI assistant for fishermen, anglers, and marine operators in India.
+    const prompt = `User Query: "${query}"${searchSnippets}\n\nFormat the response strictly following the formatting rules.`;
 
-FORMATTING & STYLE RULES:
-- Keep answers concise, clean, and conversational. NEVER output massive unreadable tables or long walls of text.
-- If the user asks a broad question (e.g. "best fishing spots in India", "where can I fish", or a list of options):
-  1. Give a crisp 1-2 sentence introduction.
-  2. Present a clean, numbered Top 5 (or Top 5-7) list where each item has:
-     - **Location Name** (Region/State) – Target species, 1-line brief reason why it's great, and best season.
-  3. End with an interactive follow-up question asking which spot they would like to explore in detail.
-- If the user chooses or asks about a specific location or topic:
-  1. Give a structured breakdown in short bullet points:
-     - **Key Highlights & Species**
-     - **Best Season & Weather/Safety**
-     - **Permits & Practical Tips**
-  2. Keep each point to 1-2 lines maximum.
-  3. Offer to check live sea conditions or plot a route.
-- Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
-
-    const prompt = `User Query: "${query}"${searchSnippets}\n\nProvide a cleanly formatted, engaging, and concise response following the formatting rules.`;
-
-    const omniResponse = await callOmniroute(prompt, systemPrompt);
+    const omniResponse = await callOmniroute(prompt, systemPrompt, history);
 
     const fallbackAnswer =
       language === 'hi'
