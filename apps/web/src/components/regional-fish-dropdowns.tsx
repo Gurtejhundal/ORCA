@@ -1,191 +1,277 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import type { ChatResponsePayload } from '@/services/marine-api';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronUp, Compass, Fish, Sparkles } from 'lucide-react';
 import type { AppLanguage } from './hero/ask-orca-bar';
 
-type FishSpecies = {
+interface FishItem {
   id: string;
-  en: string;
-  hi: string;
-  noteEn: string;
-  noteHi: string;
-};
+  nameEn: string;
+  nameHi: string;
+  promptEn: string;
+  promptHi: string;
+}
 
-type FishLocation = {
+interface RegionInfo {
   id: string;
   titleEn: string;
   titleHi: string;
-  areaEn: string;
-  areaHi: string;
-  windowEn: string;
-  windowHi: string;
-  promptEn: string;
-  promptHi: string;
-  species: FishSpecies[];
-};
+  subtitleEn: string;
+  subtitleHi: string;
+  fishItems: FishItem[];
+}
 
-const FISH_LOCATIONS: FishLocation[] = [
-  {
-    id: 'east-coast',
-    titleEn: 'Bay of Bengal coast',
-    titleHi: 'बंगाल की खाड़ी तट',
-    areaEn: 'Nagapattinam · Chennai · Odisha · Bengal',
-    areaHi: 'नागपट्टिनम · चेन्नई · ओडिशा · बंगाल',
-    windowEn: 'Good for PFZ questions near Tamil Nadu and the east coast.',
-    windowHi: 'तमिलनाडु और पूर्वी तट के PFZ सवालों के लिए उपयोगी।',
-    promptEn: 'Which fish are likely near this Bay of Bengal fishing zone, and what conditions should I check before going?',
-    promptHi: 'इस बंगाल की खाड़ी मत्स्य क्षेत्र में कौन सी मछलियाँ मिल सकती हैं और जाने से पहले कौन सी स्थितियाँ जाँचूँ?',
-    species: [
-      { id: 'sardine', en: 'Sardine', hi: 'सार्डिन', noteEn: 'Pelagic shoals near productive coastal water.', noteHi: 'उत्पादक तटीय जल में झुंड।' },
-      { id: 'mackerel', en: 'Mackerel', hi: 'मैकेरल', noteEn: 'Common when temperature and bait signals line up.', noteHi: 'तापमान और bait संकेत सही हों तो आम।' },
-      { id: 'seer', en: 'Seer fish', hi: 'सीर मछली', noteEn: 'Higher-value catch; check season and route safety.', noteHi: 'अधिक मूल्य वाली पकड़; मौसम और मार्ग सुरक्षा जाँचें।' },
-      { id: 'prawns', en: 'Prawns', hi: 'झींगा', noteEn: 'Often tied to estuaries and shallow coastal grounds.', noteHi: 'अक्सर मुहानों और उथले तटीय जल से जुड़ा।' },
-    ],
-  },
+const REGIONS: RegionInfo[] = [
   {
     id: 'west-coast',
-    titleEn: 'Arabian Sea coast',
-    titleHi: 'अरब सागर तट',
-    areaEn: 'Kerala · Karnataka · Goa · Maharashtra',
-    areaHi: 'केरल · कर्नाटक · गोवा · महाराष्ट्र',
-    windowEn: 'Use for west-coast PFZ, shelf, and harbour questions.',
-    windowHi: 'पश्चिमी तट PFZ, shelf और harbour सवालों के लिए।',
-    promptEn: 'Which fish are likely near this Arabian Sea fishing zone, and what route or weather risks should I check?',
-    promptHi: 'इस अरब सागर मत्स्य क्षेत्र में कौन सी मछलियाँ मिल सकती हैं और कौन से मार्ग या मौसम जोखिम जाँचूँ?',
-    species: [
-      { id: 'oil-sardine', en: 'Oil sardine', hi: 'ऑयल सार्डिन', noteEn: 'Strong west-coast pelagic indicator.', noteHi: 'पश्चिमी तट की pelagic प्रजाति।' },
-      { id: 'pomfret', en: 'Pomfret', hi: 'पॉम्फ्रेट', noteEn: 'Coastal shelf catch; verify local restrictions.', noteHi: 'तटीय shelf पकड़; स्थानीय नियम जाँचें।' },
-      { id: 'seer-west', en: 'Seer fish', hi: 'सीर मछली', noteEn: 'Good target when winds and currents are manageable.', noteHi: 'हवा और currents ठीक हों तो अच्छा target।' },
-      { id: 'bombay-duck', en: 'Bombay duck', hi: 'बॉम्बे डक', noteEn: 'Region-specific catch near Maharashtra/Gujarat.', noteHi: 'महाराष्ट्र/गुजरात के पास क्षेत्रीय पकड़।' },
+    titleEn: 'West coast (Kerala–Karnataka–Goa–Maharashtra)',
+    titleHi: 'पश्चिमी तट (केरल-कर्नाटक-गोवा-महाराष्ट्र)',
+    subtitleEn: 'Arabian Sea Marine Shelf',
+    subtitleHi: 'अरब सागर समुद्री तट',
+    fishItems: [
+      {
+        id: 'oil-sardine',
+        nameEn: 'Oil Sardine',
+        nameHi: 'ऑयल सार्डिन',
+        promptEn: 'Tell me the best spots, season, and techniques for catching Oil Sardine on the West coast (Kerala–Karnataka–Goa–Maharashtra)',
+        promptHi: 'पश्चिमी तट (केरल-कर्नाटक-गोवा-महाराष्ट्र) पर ऑयल सार्डिन मछली पकड़ने के सर्वोत्तम स्थान और मौसम बताएं',
+      },
+      {
+        id: 'mackerel-west',
+        nameEn: 'Mackerel',
+        nameHi: 'मैकेरल',
+        promptEn: 'Where and when can I catch Mackerel on the West coast (Kerala–Karnataka–Goa–Maharashtra)?',
+        promptHi: 'पश्चिमी तट पर मैकेरल मछली कहाँ और कब पकड़ी जा सकती है?',
+      },
+      {
+        id: 'seer-west',
+        nameEn: 'Seer (Surmai)',
+        nameHi: 'सीर (सुरमई)',
+        promptEn: 'What are the best fishing zones, gear, and season for Seer fish (Surmai/Kingfish) on the West coast?',
+        promptHi: 'पश्चिमी तट पर सीर (सुरमई) मछली के लिए सर्वोत्तम मत्स्य क्षेत्र, मौसम और गियर क्या हैं?',
+      },
+      {
+        id: 'pomfret',
+        nameEn: 'Pomfret',
+        nameHi: 'पॉम्फ्रेट',
+        promptEn: 'Guide me on catching Pomfret along the West coast (Goa, Maharashtra, Karnataka)',
+        promptHi: 'पश्चिमी तट (गोवा, महाराष्ट्र, कर्नाटक) पर पॉम्फ्रेट मछली पकड़ने की गाइड दें',
+      },
+      {
+        id: 'prawns-west',
+        nameEn: 'Prawns',
+        nameHi: 'झींगा (Prawns)',
+        promptEn: 'What are the top coastal zones and seasons for Prawns on the West coast?',
+        promptHi: 'पश्चिमी तट पर झींगा पकड़ने के लिए प्रमुख तटीय क्षेत्र और मौसम क्या हैं?',
+      },
+      {
+        id: 'bombay-duck',
+        nameEn: 'Bombay Duck',
+        nameHi: 'बॉम्बे डक',
+        promptEn: 'Tell me about Bombay Duck fishing hotspots, seasons, and techniques in Maharashtra and Gujarat',
+        promptHi: 'महाराष्ट्र और गुजरात में बॉम्बे डक मछली पकड़ने के प्रमुख क्षेत्र और मौसम बताएं',
+      },
     ],
   },
   {
-    id: 'inland',
-    titleEn: 'Inland freshwater',
-    titleHi: 'अंतर्देशीय मीठा पानी',
-    areaEn: 'Rivers · reservoirs · lakes',
-    areaHi: 'नदियाँ · जलाशय · झीलें',
-    windowEn: 'Useful for non-marine river and reservoir questions.',
-    windowHi: 'नदी और जलाशय वाले non-marine सवालों के लिए।',
-    promptEn: 'Which freshwater fish are likely in this inland zone, and what local rules should I check?',
-    promptHi: 'इस अंतर्देशीय क्षेत्र में कौन सी मीठे पानी की मछलियाँ मिल सकती हैं और कौन से स्थानीय नियम जाँचूँ?',
-    species: [
-      { id: 'rohu', en: 'Rohu', hi: 'रोहू', noteEn: 'Common river and reservoir carp.', noteHi: 'आम नदी और जलाशय carp।' },
-      { id: 'catla', en: 'Catla', hi: 'कतला', noteEn: 'Freshwater carp; check stocking and season.', noteHi: 'मीठे पानी की carp; stocking और season जाँचें।' },
-      { id: 'mrigal', en: 'Mrigal', hi: 'मृगल', noteEn: 'Bottom-feeding carp in inland waters.', noteHi: 'अंतर्देशीय जल की bottom-feeding carp।' },
-      { id: 'tilapia', en: 'Tilapia', hi: 'तिलापिया', noteEn: 'Widely present; rules vary by water body.', noteHi: 'कई जगह मौजूद; नियम जलाशय के हिसाब से बदलते हैं।' },
+    id: 'east-coast',
+    titleEn: 'East coast (Odisha–Andhra–Tamil Nadu–West Bengal)',
+    titleHi: 'पूर्वी तट (ओडिशा-आंध्र-तमिलनाडु-पश्चिम बंगाल)',
+    subtitleEn: 'Bay of Bengal Coastal Zone',
+    subtitleHi: 'बंगाल की खाड़ी तटीय क्षेत्र',
+    fishItems: [
+      {
+        id: 'mackerel-east',
+        nameEn: 'Mackerel',
+        nameHi: 'मैकेरल',
+        promptEn: 'Where and when can I catch Mackerel on the East coast (Odisha, Andhra, Tamil Nadu, West Bengal)?',
+        promptHi: 'पूर्वी तट (ओडिशा, आंध्र, तमिलनाडु, पश्चिम बंगाल) पर मैकेरल मछली पकड़ने के सर्वोत्तम स्थान बताएं',
+      },
+      {
+        id: 'sardine-east',
+        nameEn: 'Sardine',
+        nameHi: 'सार्डिन',
+        promptEn: 'What are the best fishing spots and conditions for Sardine along the East coast of India?',
+        promptHi: 'भारत के पूर्वी तट पर सार्डिन मछली पकड़ने के लिए सर्वोत्तम स्थान और स्थितियाँ क्या हैं?',
+      },
+      {
+        id: 'seer-east',
+        nameEn: 'Seer',
+        nameHi: 'सीर मछली',
+        promptEn: 'Tell me about Seer fish grounds, gear, and safe seasons on the East coast (Bay of Bengal)',
+        promptHi: 'पूर्वी तट (बंगाल की खाड़ी) पर सीर मछली के शिकार क्षेत्र और सुरक्षित मौसम बताएं',
+      },
+      {
+        id: 'prawns-east',
+        nameEn: 'Prawns',
+        nameHi: 'झींगा',
+        promptEn: 'What are the best estuaries and coastal waters for Prawns on the East coast?',
+        promptHi: 'पूर्वी तट पर झींगा मछली पकड़ने के लिए प्रमुख मुहाने और तटीय जल कौन से हैं?',
+      },
+      {
+        id: 'hilsa',
+        nameEn: 'Hilsa (Border Rivers)',
+        nameHi: 'हिलसा (सीमावर्ती नदियाँ)',
+        promptEn: 'Tell me about Hilsa fishing in West Bengal and Bangladesh border rivers: best seasons, rules, and hotspots',
+        promptHi: 'पश्चिम बंगाल और सीमावर्ती नदियों में हिलसा मछली पकड़ने के नियम, मौसम और प्रमुख स्थान बताएं',
+      },
+      {
+        id: 'snappers',
+        nameEn: 'Various Snappers',
+        nameHi: 'स्नैपर्स (Snappers)',
+        promptEn: 'What are the top reef spots and techniques for catching Snappers on the East coast?',
+        promptHi: 'पूर्वी तट पर स्नैपर्स मछली पकड़ने के लिए शीर्ष रीफ स्थान और तकनीकें क्या हैं?',
+      },
+    ],
+  },
+  {
+    id: 'north-central-inland',
+    titleEn: 'North/central India (inland)',
+    titleHi: 'उत्तर/मध्य भारत (अंतर्देशीय)',
+    subtitleEn: 'Rivers, Lakes & Reservoirs',
+    subtitleHi: 'नदियाँ, झीलें और जलाशय',
+    fishItems: [
+      {
+        id: 'rohu',
+        nameEn: 'Rohu',
+        nameHi: 'रोहू',
+        promptEn: 'Tell me the best rivers, reservoirs, and bait techniques for catching Rohu in North/Central India',
+        promptHi: 'उत्तर/मध्य भारत में रोहू मछली पकड़ने के लिए प्रमुख नदियाँ, जलाशय और चारा तकनीकें बताएं',
+      },
+      {
+        id: 'catla',
+        nameEn: 'Catla',
+        nameHi: 'कतला',
+        promptEn: 'Where are the top inland freshwater spots and best seasons for Catla in North/Central India?',
+        promptHi: 'उत्तर/मध्य भारत में कतला मछली के लिए शीर्ष मीठे पानी के स्थान और सर्वोत्तम मौसम कौन से हैं?',
+      },
+      {
+        id: 'mrigal',
+        nameEn: 'Mrigal',
+        nameHi: 'मृगल',
+        promptEn: 'What are the best techniques, tackle, and locations for Mrigal fishing in North/Central India?',
+        promptHi: 'उत्तर/मध्य भारत में मृगल मछली पकड़ने के लिए सर्वोत्तम तकनीक और स्थान क्या हैं?',
+      },
+      {
+        id: 'pangasius',
+        nameEn: 'Pangasius',
+        nameHi: 'पंगासियस',
+        promptEn: 'Where can I catch Pangasius in North and Central India rivers and lakes?',
+        promptHi: 'उत्तर और मध्य भारत की नदियों और झीलों में पंगासियस कहाँ पकड़ी जा सकती है?',
+      },
+      {
+        id: 'tilapia',
+        nameEn: 'Tilapia',
+        nameHi: 'तिलापिया',
+        promptEn: 'Tell me about Tilapia fishing spots, seasons, and gear in North and Central India',
+        promptHi: 'उत्तर और मध्य भारत में तिलापिया मछली पकड़ने के स्थान, मौसम और गियर के बारे में बताएं',
+      },
+      {
+        id: 'magur',
+        nameEn: 'Magur (Catfish)',
+        nameHi: 'मागुर (कैटफिश)',
+        promptEn: 'What are the best wetland and river spots for Magur (catfish) in North/Central India?',
+        promptHi: 'उत्तर/मध्य भारत में मागुर (कैटफिश) के लिए सबसे अच्छे आर्द्रभूमि और नदी स्थान कौन से हैं?',
+      },
     ],
   },
 ];
 
-function textFromResponse(response?: ChatResponsePayload) {
-  if (!response) return '';
-  return [
-    response.answer,
-    response.intent,
-    response.recommended_pfz ? JSON.stringify(response.recommended_pfz) : '',
-    response.data?.ranked_pfz ? JSON.stringify(response.data.ranked_pfz) : '',
-  ].join(' ');
-}
-
-function locationForText(text: string) {
-  const value = text.toLowerCase();
-  if (/kochi|kerala|goa|mumbai|maharashtra|karnataka|gujarat|arabian/.test(value)) return 'west-coast';
-  if (/river|lake|reservoir|rohu|catla|mrigal|tilapia|inland|freshwater/.test(value)) return 'inland';
-  return 'east-coast';
-}
-
-function speciesPrompt(location: FishLocation, species: FishSpecies, language: AppLanguage) {
-  return language === 'hi'
-    ? `${location.titleHi} में ${species.hi} के लिए कौन सा PFZ, मौसम, गियर और सुरक्षा जाँच सही रहेगी?`
-    : `For ${species.en} near the ${location.titleEn}, which PFZ, season, gear, and safety checks should I use?`;
-}
-
-export function FishLocateCard({
-  response,
-  language = 'en',
-  onSelectPrompt,
-}: {
-  response?: ChatResponsePayload;
-  language?: AppLanguage;
-  onSelectPrompt?: (prompt: string) => void;
-}) {
-  const isHi = language === 'hi';
-  const location = FISH_LOCATIONS.find((item) => item.id === locationForText(textFromResponse(response))) ?? FISH_LOCATIONS[0];
-
-  return (
-    <section className="fish-locate-card" aria-label={isHi ? 'मछली लोकेट' : 'Fish locate'}>
-      <div className="fish-locate-card__head">
-        <span>{isHi ? 'मछली लोकेट' : 'FISH LOCATE'}</span>
-        <strong>{isHi ? location.titleHi : location.titleEn}</strong>
-        <small>{isHi ? location.areaHi : location.areaEn}</small>
-      </div>
-      <div className="fish-locate-species">
-        {location.species.map((fish) => (
-          <button key={fish.id} type="button" onClick={() => onSelectPrompt?.(speciesPrompt(location, fish, language))}>
-            <span>{isHi ? fish.hi : fish.en}</span>
-            <small>{isHi ? fish.noteHi : fish.noteEn}</small>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function RegionalFishDropdowns({
   language = 'en',
-  activeResponse,
   onSelectPrompt,
 }: {
   language?: AppLanguage;
-  activeResponse?: ChatResponsePayload;
   onSelectPrompt?: (prompt: string) => void;
 }) {
-  const isHi = language === 'hi';
-  const suggestedLocation = useMemo(() => locationForText(textFromResponse(activeResponse)), [activeResponse]);
-  const [selectedId, setSelectedId] = useState(suggestedLocation);
-  const selected = FISH_LOCATIONS.find((location) => location.id === selectedId) ?? FISH_LOCATIONS[0];
+  const [openStates, setOpenStates] = useState<Record<string, boolean>>({
+    'west-coast': true,
+    'east-coast': false,
+    'north-central-inland': false,
+  });
 
-  useEffect(() => setSelectedId(suggestedLocation), [suggestedLocation]);
+  const toggleOpen = (id: string) => {
+    setOpenStates((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const isHi = language === 'hi';
 
   return (
-    <aside className="fish-locate-panel" aria-label={isHi ? 'मछली लोकेट पैनल' : 'Fish locate panel'}>
-      <div className="fish-locate-panel__header">
-        <span>{isHi ? 'ORCA मछली लोकेट' : 'ORCA FISH LOCATE'}</span>
-        <h2>{isHi ? 'क्षेत्र चुनें, प्रजाति पूछें।' : 'Pick a zone, ask a species.'}</h2>
-        <p>{isHi ? 'ORCA जवाब को PFZ, मौसम, मार्ग जोखिम और सुरक्षा जाँच से जोड़ता है।' : 'ORCA ties the answer to PFZ, weather, route risk, and safety checks.'}</p>
+    <aside
+      className="regional-dropdowns-sidebar"
+      aria-label={isHi ? 'क्षेत्रीय मत्स्य गाइड' : 'Regional Fish Guide'}
+    >
+      <div className="regional-dropdowns-header">
+        <div className="regional-dropdowns-title">
+          <Compass size={14} aria-hidden="true" />
+          <span>{isHi ? 'क्षेत्रीय प्रमुख प्रजातियाँ' : 'REGIONAL CATCH GUIDE'}</span>
+        </div>
+        <span className="regional-dropdowns-badge">
+          3 {isHi ? 'क्षेत्र' : 'Zones'}
+        </span>
       </div>
 
-      <div className="fish-locate-tabs" role="tablist" aria-label={isHi ? 'मत्स्य क्षेत्र' : 'Fish zones'}>
-        {FISH_LOCATIONS.map((location) => (
-          <button
-            key={location.id}
-            type="button"
-            role="tab"
-            aria-selected={selected.id === location.id}
-            onClick={() => setSelectedId(location.id)}
-          >
-            {isHi ? location.titleHi : location.titleEn}
-          </button>
-        ))}
-      </div>
+      <div className="regional-dropdowns-list">
+        {REGIONS.map((region) => {
+          const isOpen = !!openStates[region.id];
+          const title = isHi ? region.titleHi : region.titleEn;
+          const subtitle = isHi ? region.subtitleHi : region.subtitleEn;
 
-      <div className="fish-locate-panel__body">
-        <small>{isHi ? selected.areaHi : selected.areaEn}</small>
-        <p>{isHi ? selected.windowHi : selected.windowEn}</p>
-        <button className="fish-locate-primary" type="button" onClick={() => onSelectPrompt?.(isHi ? selected.promptHi : selected.promptEn)}>
-          {isHi ? 'इस क्षेत्र की उपलब्ध मछलियाँ पूछें' : 'Ask available fish here'}
-        </button>
-      </div>
+          return (
+            <div
+              key={region.id}
+              className={`regional-card ${isOpen ? 'is-open' : ''}`}
+            >
+              <button
+                type="button"
+                className="regional-card-header"
+                onClick={() => toggleOpen(region.id)}
+                aria-expanded={isOpen}
+              >
+                <div className="regional-card-title-group">
+                  <div className="regional-card-icon">
+                    <Fish size={15} aria-hidden="true" />
+                  </div>
+                  <div className="regional-card-texts">
+                    <span className="regional-card-title">{title}</span>
+                    <span className="regional-card-subtitle">{subtitle}</span>
+                  </div>
+                </div>
+                <div className="regional-card-chevron">
+                  {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </div>
+              </button>
 
-      <div className="fish-locate-species">
-        {selected.species.map((fish) => (
-          <button key={fish.id} type="button" onClick={() => onSelectPrompt?.(speciesPrompt(selected, fish, language))}>
-            <span>{isHi ? fish.hi : fish.en}</span>
-            <small>{isHi ? fish.noteHi : fish.noteEn}</small>
-          </button>
-        ))}
+              {isOpen && (
+                <div className="regional-card-body">
+                  <div className="fish-buttons-grid">
+                    {region.fishItems.map((fish) => {
+                      const name = isHi ? fish.nameHi : fish.nameEn;
+                      const prompt = isHi ? fish.promptHi : fish.promptEn;
+
+                      return (
+                        <button
+                          key={fish.id}
+                          type="button"
+                          className="fish-ask-button"
+                          onClick={() => onSelectPrompt?.(prompt)}
+                          title={isHi ? `${name} के बारे में पूछें` : `Ask about ${name}`}
+                        >
+                          <Fish size={12} className="fish-btn-icon" aria-hidden="true" />
+                          <span className="fish-btn-name">{name}</span>
+                          <Sparkles size={11} className="fish-btn-sparkle" aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </aside>
   );
