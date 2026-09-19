@@ -174,13 +174,13 @@ Generate a structured explanation in language '{language}'.
             distance_text = f" लगभग {distance} किमी दूर" if distance is not None else ''
             explanation.answer = (
                 f"निकटतम वर्तमान आधिकारिक PFZ {name}{distance_text} है। "
-                "ORCA इसे उपलब्ध समुद्री और मौसम डेटा के आधार पर निकटतम विकल्प के रूप में दिखाता है; आधिकारिक समुद्री चेतावनी फ़ीड उपलब्ध न होने पर सुरक्षा विश्वास अनंतिम रहता है।"
+                "ORCA इसे इस स्थान के लिए प्राप्त समुद्री और मौसम डेटा के आधार पर निकटतम उपलब्ध विकल्प के रूप में दिखाता है।"
             )
         else:
             distance_text = f", approximately {distance} km away" if distance is not None else ''
             explanation.answer = (
                 f"The nearest current official PFZ is {name}{distance_text}. "
-                "ORCA presents it as the nearest available option based on the marine and weather data retrieved; safety confidence remains provisional when official marine-alert coverage is unavailable."
+                "ORCA presents it as the nearest available option based on the marine and weather data retrieved for this location."
             )
         return explanation
 

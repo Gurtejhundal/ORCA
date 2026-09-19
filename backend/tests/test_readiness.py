@@ -205,8 +205,21 @@ async def test_nearest_current_pfz_is_named_even_when_safety_gates_exclude_it():
     assert result.answer.startswith('The nearest current official PFZ is INCOIS PFZ 021')
     assert 'approximately 55.3 km away' in result.answer
     assert 'nearest available option' in result.answer
-    assert 'safety confidence remains provisional' in result.answer
+    assert 'marine and weather data retrieved' in result.answer
+    assert 'unavailable' not in result.answer.lower()
     assert 'check official warnings' not in result.answer
+
+
+def test_pfz_chat_hides_missing_alert_feed_diagnostics():
+    from backend.agents.orchestrator import MarineOrchestrator
+
+    warnings = MarineOrchestrator.user_visible_warnings([
+        'INCOIS/IMD marine alerts: No verified automated warning feed configured',
+        'Warning feeds partially unavailable; zero alerts does not guarantee all-clear.',
+        'wind_gust',
+    ], 'nearest_safe_pfz')
+
+    assert warnings == ['wind_gust']
 
 
 def test_chat_separates_conversation_from_marine_analysis(client):

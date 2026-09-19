@@ -61,6 +61,25 @@ class MarineOrchestrator:
         self.route_service = route_service or MarineRouteService(self.risk_service)
         self.geofence_service = geofence_service or GeofenceService(marine_service)
 
+    @staticmethod
+    def user_visible_warnings(warnings: list[str], intent: str) -> list[str]:
+        """Keep missing alert-feed diagnostics in system health, not normal PFZ chat copy."""
+        if intent not in ('nearest_safe_pfz', 'nearest_pfz'):
+            return warnings
+        hidden_phrases = (
+            'alert coverage unavailable',
+            'alerts from incois/imd are currently unavailable',
+            'marine alerts: no verified',
+            'warning feeds partially unavailable',
+            'absence of alerts does not guarantee',
+            'zero alerts does not guarantee',
+            'no pfz met every safety gate',
+        )
+        return [
+            warning for warning in warnings
+            if not any(phrase in warning.lower() for phrase in hidden_phrases)
+        ]
+
     async def execute_task_graph(
         self,
         plan: ExecutionPlan,
@@ -529,6 +548,7 @@ class MarineOrchestrator:
             recommended_pfz=context.selected_pfz.model_dump() if context.selected_pfz else None,
             analysis=analysis_summary,
         )
+        explanation.warnings = self.user_visible_warnings(explanation.warnings, intent_out.intent)
 
         # 14. Persist State & Agent Run
         context.last_intent = intent_out.intent
