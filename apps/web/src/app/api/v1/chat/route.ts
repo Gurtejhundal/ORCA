@@ -12,11 +12,25 @@ import {
 
 export const runtime = 'nodejs';
 
-const OMNIROUTE_URL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
-const OMNIROUTE_API_KEY = process.env.OMNIROUTE_API_KEY || 'Sk-d10ecaf9238c4fe2-5e7dfe-a1e3dfb6';
-const OMNIROUTE_MODEL = process.env.OMNIROUTE_MODEL || 'openrouter/cohere/north-mini-code:free';
+const LLM_BASE_URL =
+  process.env.LLM_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  process.env.OMNIROUTE_BASE_URL ||
+  'http://localhost:20128/v1';
 
-async function callOmniroute(
+const LLM_API_KEY =
+  process.env.LLM_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  process.env.OMNIROUTE_API_KEY ||
+  'Sk-d10ecaf9238c4fe2-5e7dfe-a1e3dfb6';
+
+const LLM_MODEL =
+  process.env.LLM_MODEL ||
+  process.env.OPENAI_MODEL ||
+  process.env.OMNIROUTE_MODEL ||
+  'openrouter/cohere/north-mini-code:free';
+
+async function callLLM(
   prompt: string,
   systemPrompt?: string,
   history?: Array<{ role: string; content: string }>,
@@ -35,19 +49,19 @@ async function callOmniroute(
     }
     messages.push({ role: 'user', content: prompt });
 
-    const res = await fetch(`${OMNIROUTE_URL}/chat/completions`, {
+    const res = await fetch(`${LLM_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${OMNIROUTE_API_KEY}`,
+        Authorization: `Bearer ${LLM_API_KEY}`,
       },
       body: JSON.stringify({
-        model: OMNIROUTE_MODEL,
+        model: LLM_MODEL,
         messages,
         temperature: 0.2,
         max_tokens: 1024,
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(12000),
     });
 
     if (!res.ok) {
@@ -174,7 +188,7 @@ Language: Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
             searchResults.map((r) => `- [${r.domain}] ${r.snippet}`).join('\n')
           : '';
 
-      const omniResponse = await callOmniroute(
+      const omniResponse = await callLLM(
         `User query: "${query}"\n\nDecision Result:\n${baseAnswer}${multiSourceContext}${searchContext}\n\nFormat the response strictly following the formatting rules.`,
         systemPrompt,
         history,
@@ -344,7 +358,7 @@ Language: Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
 
     const prompt = `User Query: "${query}"${searchSnippets}\n\nFormat the response strictly following the formatting rules.`;
 
-    const omniResponse = await callOmniroute(prompt, systemPrompt, history);
+    const omniResponse = await callLLM(prompt, systemPrompt, history);
 
     const fallbackAnswer =
       language === 'hi'
