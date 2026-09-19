@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import React, { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import type { ConversationContext, DecisionResponse } from '@orca/contracts';
 import dynamic from 'next/dynamic';
 import {
@@ -182,6 +182,88 @@ function ChatMapPreview({ response, decision, language, onOpenMap }: { response:
   );
 }
 
+function renderInlineFormatting(line: string): React.ReactNode {
+  // Strip stray asterisks and turn **bold** or *emphasis* into clean <strong> tags without visible asterisks
+  const parts = line.split(/(\*\*[^*]+?\*\*|\*[^*]+?\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const content = part.slice(2, -2).replace(/\*/g, '').trim();
+      return <strong key={idx}>{content}</strong>;
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      const content = part.slice(1, -1).replace(/\*/g, '').trim();
+      return <strong key={idx}>{content}</strong>;
+    }
+    const clean = part.replace(/\*/g, '');
+    return <span key={idx}>{clean}</span>;
+  });
+}
+
+export function FormattedAnswer({ text }: { text?: string }) {
+  if (!text) return null;
+  const paragraphs = text.split(/\n\s*\n/);
+
+  return (
+    <div className="chat-answer-body">
+      {paragraphs.map((para, pIdx) => {
+        const rawLines = para.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (rawLines.length === 0) return null;
+
+        const isList = rawLines.every((l) => /^(\d+\.|\*|\-|\•)\s+/.test(l));
+        if (isList) {
+          return (
+            <ul key={pIdx} className="chat-answer-list">
+              {rawLines.map((line, lIdx) => {
+                const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+                if (numMatch) {
+                  return (
+                    <li key={lIdx}>
+                      <span className="list-bullet">{numMatch[1]}.</span>
+                      <span>{renderInlineFormatting(numMatch[2])}</span>
+                    </li>
+                  );
+                }
+                const bulletContent = line.replace(/^(\*|\-|\•)\s+/, '');
+                return (
+                  <li key={lIdx}>
+                    <span className="list-bullet">•</span>
+                    <span>{renderInlineFormatting(bulletContent)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }
+
+        return (
+          <p key={pIdx}>
+            {rawLines.map((line, lIdx) => {
+              const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+              const bulletMatch = line.match(/^(\*|\-|\•)\s+(.*)/);
+              if (numMatch || bulletMatch) {
+                const bullet = numMatch ? `${numMatch[1]}.` : '•';
+                const body = numMatch ? numMatch[2] : bulletMatch![2];
+                return (
+                  <span key={lIdx} style={{ display: 'block', margin: '4px 0' }}>
+                    <strong style={{ color: '#52c4b2', marginRight: '6px' }}>{bullet}</strong>
+                    {renderInlineFormatting(body)}
+                  </span>
+                );
+              }
+              return (
+                <React.Fragment key={lIdx}>
+                  {lIdx > 0 && <br />}
+                  {renderInlineFormatting(line)}
+                </React.Fragment>
+              );
+            })}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; initialDecision?: DecisionResponse; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
   const endRef = useRef<HTMLDivElement>(null);
   const copy = CHAT_COPY[language];
@@ -213,10 +295,14 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
                 <AgentThinkingIndicator language={language} />
               )}
               {turn.error && <div className="chat-error" role="alert">{turn.error === CHAT_COPY.en.interrupted ? copy.interrupted : turn.error}</div>}
-              {turn.guide && <div className="chat-answer"><p>{turn.guide}</p></div>}
+              {turn.guide && (
+                <div className="chat-answer">
+                  <FormattedAnswer text={turn.guide} />
+                </div>
+              )}
               {turn.response && (
                 <div className="chat-answer">
-                  <p>{turn.response.answer}</p>
+                  <FormattedAnswer text={turn.response.answer} />
                   <AgentChatTrace
                     toolCalls={turn.response.tool_calls}
                     tasks={turn.response.data?.tasks as Array<{ id: string; agent: string; action: string }> | undefined}

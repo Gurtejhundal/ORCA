@@ -204,6 +204,47 @@
   animation: answer-in 220ms ease-out both;
 }
 
+.chat-answer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #f1f8f5;
+  font-size: 14.5px;
+  line-height: 1.68;
+}
+
+.chat-answer-body p {
+  margin: 0;
+  color: inherit;
+}
+
+.chat-answer-body strong {
+  color: #d1f7ef;
+  font-weight: 600;
+}
+
+.chat-answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-answer-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+
+.chat-answer-list .list-bullet {
+  color: #52c4b2;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 .chat-answer > p {
   color: #f1f8f5;
   font-size: 15px;
