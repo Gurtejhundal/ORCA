@@ -31,8 +31,6 @@ class Settings(BaseSettings):
     llm_api_key: str = ''
     gemini_api_key: str = ''
     gemini_model: str = 'gemini-3.1-flash-lite'
-    groq_api_key: str = ''
-    groq_model: str = 'llama-3.3-70b-versatile'
 
     # Bhashini Indian-language Voice Configuration
     bhashini_api_key: str = ''

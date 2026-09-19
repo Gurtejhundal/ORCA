@@ -47,8 +47,7 @@ async def status(request: Request, svc: MarineService = Depends(service)):
     sources['voice'] = {'status': voice_status, 'provider': 'bhashini_or_browser'}
     configured_provider = svc.settings.llm_provider.lower()
     configured_model = (
-        svc.settings.groq_model if configured_provider == 'groq'
-        else svc.settings.gemini_model if configured_provider in ('gemini', 'google')
+        svc.settings.gemini_model if configured_provider in ('gemini', 'google')
         else svc.settings.llm_model
     )
     sources['llm'] = {
