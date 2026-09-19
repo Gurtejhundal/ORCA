@@ -18,7 +18,7 @@ import type { AppLanguage } from './hero/ask-orca-bar';
 import type { MarineToolId } from './hero/marine-tool-dock';
 import { LandingSections } from './landing-sections';
 import { AgentChatTrace, AgentThinkingIndicator } from './agent-chat-trace';
-import { RegionalFishDropdowns } from './regional-fish-dropdowns';
+import { FishLocateCard, RegionalFishDropdowns } from './regional-fish-dropdowns';
 
 type View = 'chat' | 'workspace' | 'evidence';
 type ChatTurn = {
@@ -147,6 +147,10 @@ function hasMapConfiguration(response: ChatResponsePayload) {
   return response.map_actions.length > 0 || !!response.route || !!response.recommended_pfz || !!response.data.ranked_pfz;
 }
 
+function hasFishLocateContext(response: ChatResponsePayload) {
+  return response.intent !== 'general_conversation' || hasMapConfiguration(response);
+}
+
 function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; pending: boolean; onSubmit: (query: string) => Promise<void> }) {
   const [message, setMessage] = useState('');
   const copy = CHAT_COPY[language];
@@ -268,6 +272,7 @@ export function FormattedAnswer({ text }: { text?: string }) {
 function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; initialDecision?: DecisionResponse; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
   const endRef = useRef<HTMLDivElement>(null);
   const copy = CHAT_COPY[language];
+  const latestResponse = [...turns].reverse().find((turn) => turn.response)?.response;
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [turns, pending]);
@@ -318,6 +323,9 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
                       </>}
                       <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
                     </div>
+                    {hasFishLocateContext(turn.response) && (
+                      <FishLocateCard response={turn.response} language={language} onSelectPrompt={(prompt) => void onSubmit(prompt)} />
+                    )}
                     {hasMapConfiguration(turn.response) && (
                       <ChatMapPreview response={turn.response} decision={initialDecision} language={language} onOpenMap={() => onOpenMap(turn.response)} />
                     )}
@@ -331,6 +339,7 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
         </div>
         <RegionalFishDropdowns
           language={language}
+          activeResponse={latestResponse}
           onSelectPrompt={(prompt) => void onSubmit(prompt)}
         />
       </div>

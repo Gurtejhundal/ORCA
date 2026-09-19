@@ -91,197 +91,168 @@
     gap: 0;
     padding: 0;
   }
-  .regional-dropdowns-sidebar {
+  .fish-locate-panel {
     display: none;
   }
 }
 
-/* Regional Dropdowns Sidebar (Right Side of Chat) */
-.regional-dropdowns-sidebar {
+.fish-locate-panel,
+.fish-locate-card {
+  color: #eff8f5;
+}
+
+.fish-locate-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   padding: 24px 0 20px;
   overflow-y: auto;
 }
 
-.regional-dropdowns-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
+.fish-locate-panel__header,
+.fish-locate-card {
+  border: 1px solid rgba(232, 250, 246, .08);
+  border-radius: 18px;
+  background: rgba(4, 30, 41, .42);
+  backdrop-filter: blur(24px) saturate(112%);
 }
 
-.regional-dropdowns-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #72b3a6;
-  font: 10px/1.2 var(--font-mono);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.fish-locate-panel__header {
+  padding: 18px;
 }
 
-.regional-dropdowns-badge {
-  padding: 2px 7px;
-  border-radius: 4px;
-  background: rgba(82, 196, 178, 0.12);
-  border: 1px solid rgba(82, 196, 178, 0.25);
-  color: #a8ece0;
+.fish-locate-panel__header span,
+.fish-locate-card__head span {
+  display: block;
+  margin-bottom: 10px;
+  color: #8ab8b4;
   font: 9px/1.2 var(--font-mono);
-  font-weight: 600;
+  letter-spacing: .16em;
 }
 
-.regional-dropdowns-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.fish-locate-panel__header h2 {
+  margin: 0;
+  color: #f4fbf8;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -.02em;
 }
 
-.regional-card {
-  border: 1px solid rgba(82, 196, 178, 0.16);
-  border-radius: 10px;
-  background: rgba(4, 28, 38, 0.55);
-  backdrop-filter: blur(16px);
-  overflow: hidden;
-  transition: border-color 200ms ease, background 200ms ease, box-shadow 200ms ease;
+.fish-locate-panel__header p,
+.fish-locate-panel__body p {
+  margin: 10px 0 0;
+  color: #b7cac8;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
-.regional-card:hover {
-  border-color: rgba(82, 196, 178, 0.35);
-  background: rgba(4, 32, 44, 0.7);
-}
-
-.regional-card.is-open {
-  border-color: rgba(82, 196, 178, 0.45);
-  background: rgba(3, 30, 42, 0.82);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-}
-
-.regional-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 12px 14px;
-  border: 0;
-  background: transparent;
-  color: #eff8f5;
-  cursor: pointer;
-  text-align: left;
-}
-
-.regional-card-title-group {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex: 1;
-}
-
-.regional-card-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin-top: 1px;
-  border-radius: 6px;
-  background: rgba(82, 196, 178, 0.12);
-  border: 1px solid rgba(82, 196, 178, 0.25);
-  color: #52c4b2;
-  flex-shrink: 0;
-}
-
-.regional-card-texts {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.regional-card-title {
-  color: #eff8f5;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.regional-card-subtitle {
-  color: #79a8a4;
-  font: 10px/1.2 var(--font-mono);
-}
-
-.regional-card-chevron {
-  color: #79a8a4;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.regional-card-body {
-  padding: 12px 14px 14px;
-  border-top: 1px solid rgba(82, 196, 178, 0.12);
-  background: rgba(2, 18, 25, 0.45);
-  animation: answer-in 180ms ease-out both;
-}
-
-.fish-buttons-grid {
+.fish-locate-tabs {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
-.fish-ask-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px solid rgba(82, 196, 178, 0.22);
-  border-radius: 7px;
-  background: rgba(82, 196, 178, 0.07);
-  color: #c4f3ea;
-  font-size: 12px;
-  font-weight: 500;
+.fish-locate-tabs button,
+.fish-locate-primary,
+.fish-locate-species button {
+  border: 1px solid rgba(232, 250, 246, .08);
+  background: rgba(2, 21, 29, .36);
+  color: #d9ece8;
   cursor: pointer;
   text-align: left;
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
 }
 
-.fish-ask-button:hover {
-  border-color: rgba(82, 196, 178, 0.55);
-  background: rgba(82, 196, 178, 0.2);
-  color: #ffffff;
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+.fish-locate-tabs button {
+  min-height: 42px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12px;
 }
 
-.fish-ask-button:active {
-  transform: translateY(0);
+.fish-locate-tabs button:hover,
+.fish-locate-tabs button[aria-selected='true'],
+.fish-locate-primary:hover,
+.fish-locate-species button:hover {
+  border-color: rgba(137, 219, 204, .28);
+  background: rgba(13, 61, 70, .42);
+  color: #fff;
 }
 
-.fish-btn-icon {
-  color: #52c4b2;
-  flex-shrink: 0;
+.fish-locate-panel__body {
+  padding: 16px;
+  border-top: 1px solid rgba(232, 250, 246, .08);
+  border-bottom: 1px solid rgba(232, 250, 246, .08);
 }
 
-.fish-btn-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.fish-locate-panel__body small,
+.fish-locate-card__head small {
+  color: #86a7a4;
+  font: 10px/1.5 var(--font-mono);
 }
 
-.fish-btn-sparkle {
-  color: #79a8a4;
-  opacity: 0.6;
-  flex-shrink: 0;
-  transition: opacity 150ms ease, color 150ms ease;
+.fish-locate-primary {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 14px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  text-align: center;
 }
 
-.fish-ask-button:hover .fish-btn-sparkle {
-  color: #52c4b2;
-  opacity: 1;
+.fish-locate-card {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.fish-locate-card__head {
+  margin-bottom: 12px;
+}
+
+.fish-locate-card__head strong {
+  display: block;
+  color: #f4fbf8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fish-locate-species {
+  display: grid;
+  gap: 8px;
+}
+
+.fish-locate-card .fish-locate-species {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fish-locate-species button {
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.fish-locate-species span,
+.fish-locate-species small {
+  display: block;
+}
+
+.fish-locate-species span {
+  color: #e9f6f2;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.fish-locate-species small {
+  margin-top: 5px;
+  color: #8fb0ad;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+@media (max-width: 680px) {
+  .fish-locate-card .fish-locate-species {
+    grid-template-columns: 1fr;
+  }
 }
 
 .chat-session-bar {
