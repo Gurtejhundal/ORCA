@@ -241,7 +241,7 @@ def test_chat_separates_conversation_from_marine_analysis(client):
         ('thanks', 'en', "You're welcome"),
         ('नमस्ते', 'hi', 'नमस्ते'),
         ('PFZ क्या है?', 'hi', 'संभावित मछली क्षेत्र'),
-        ('What is the capital of France?', 'en', "General AI answers aren't connected"),
+        ('What is the capital of France?', 'en', 'only handle marine-intelligence questions'),
     ]:
         response = client.post('/api/v1/chat', json={'message': message, 'language': language, 'session_id': session_id})
         assert response.status_code == 200, response.text
@@ -272,16 +272,22 @@ def test_chat_separates_conversation_from_marine_analysis(client):
         intent = asyncio.run(orchestrator.intent_agent.detect_intent(question, context.model_dump(), 'en'))
         assert intent.intent == expected and intent.required_capabilities
 
-    # The same endpoint uses an existing real provider for open-ended answers.
+    # A configured provider remains marine-scoped and does not answer general trivia.
     llm = AsyncMock(spec=LLMProvider)
     llm.generate_structured.return_value = IntentOutput(intent='general_conversation')
-    llm.generate_text.return_value = 'Paris is the capital of France.'
     orchestrator.intent_agent.llm = orchestrator.explanation_agent.llm = llm
     response = client.post('/api/v1/chat', json={'message': 'What is the capital of France?', 'session_id': session_id})
-    assert response.json()['answer'] == 'Paris is the capital of France.'
+    assert 'only handle marine-intelligence questions' in response.json()['answer']
+    llm.generate_text.assert_not_called()
+
+    llm.generate_text.return_value = 'Chlorophyll can indicate productive waters that support the marine food web.'
+    response = client.post('/api/v1/chat', json={
+        'message': 'Why does chlorophyll matter for fishing?', 'session_id': session_id,
+    })
+    assert response.json()['answer'].startswith('Chlorophyll can indicate productive waters')
     prompt = json.loads(llm.generate_text.call_args.kwargs['prompt'])
-    assert len(prompt['recent_conversation']) == 6 and prompt['message'] == 'What is the capital of France?'
-    assert 'Never invent current weather' in llm.generate_text.call_args.kwargs['system_prompt']
+    assert len(prompt['recent_conversation']) == 6 and prompt['message'] == 'Why does chlorophyll matter for fishing?'
+    assert 'Answer only marine' in llm.generate_text.call_args.kwargs['system_prompt']
 
     llm.generate_structured.side_effect = RuntimeError('provider unavailable')
     llm.generate_text.side_effect = RuntimeError('provider unavailable')
