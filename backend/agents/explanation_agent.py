@@ -73,7 +73,7 @@ class ExplanationAgent:
                 warnings + ['Rule-based language fallback; no live LLM is configured.'],
                 language, location_name, sorted({ev.source for ev in evidence}),
                 recommended_pfz, analysis)
-            return self._ensure_reference_notice(result, analysis, language)
+            return self._ensure_pfz_disclosure(result, analysis, language)
         # Build strict evidence context summary for prompt
         ev_summary = []
         sources = set()
@@ -120,50 +120,68 @@ Generate a structured explanation in language '{language}'.
             )
             explanation.sources = sorted(list(sources))
             explanation.warnings = list(dict.fromkeys(warnings + explanation.warnings))
-            return self._ensure_reference_notice(explanation, analysis, language)
+            return self._ensure_pfz_disclosure(explanation, analysis, language)
         except Exception as exc:
             logger.warning("llm_explanation_failed: %s; falling back to deterministic explanation", exc)
             result = self._deterministic_fallback(
                 query, intent, evidence, warnings, language, location_name,
                 list(sources), recommended_pfz, analysis
             )
-            return self._ensure_reference_notice(result, analysis, language)
+            return self._ensure_pfz_disclosure(result, analysis, language)
 
     @staticmethod
-    def _ensure_reference_notice(
+    def _ensure_pfz_disclosure(
         explanation: ExplanationOutput,
         analysis: dict | None,
         language: str,
     ) -> ExplanationOutput:
-        """Keep future PFZ validity disclosure deterministic even when an LLM omits it."""
-        latest = (analysis or {}).get('latest_published_pfz')
-        if not latest:
+        """Always name nearby official PFZs while keeping validity and safety limitations explicit."""
+        analysis = analysis or {}
+        references = analysis.get('latest_published_pfz_candidates') or []
+        if not references and analysis.get('latest_published_pfz'):
+            references = [analysis['latest_published_pfz']]
+        if references:
+            items = []
+            for candidate in references[:3]:
+                name = candidate.get('name') or 'PFZ'
+                distance = candidate.get('distance_km')
+                if isinstance(distance, (int, float)):
+                    distance = round(distance, 1)
+                items.append(f"{name} ({distance} km)" if distance is not None else name)
+            valid_until = references[0].get('valid_until')
+            if language == 'hi':
+                validity = f" ये {valid_until} तक मान्य हैं।" if valid_until else ''
+                explanation.answer = (
+                    f"निकटतम वर्तमान में प्रकाशित PFZ हैं: {', '.join(items)}।{validity} "
+                    "ये अनुरोधित भविष्य के समय के लिए जारी सलाह नहीं हैं; इन्हें योजना संदर्भ के रूप में देखें और प्रस्थान से पहले नई INCOIS सलाह जाँचें।"
+                )
+            else:
+                validity = f" They are valid until {valid_until}." if valid_until else ''
+                explanation.answer = (
+                    f"The nearest currently published PFZs are {', '.join(items)}.{validity} "
+                    "They are planning references because INCOIS has not yet published an advisory valid for the requested future time; check the latest advisory before departure."
+                )
             return explanation
-        name = latest.get('name') or 'PFZ'
-        existing = explanation.answer.lower()
-        if str(name).lower() in existing and ('reference' in existing or 'संदर्भ' in explanation.answer):
+
+        nearest = analysis.get('nearest_pfz_candidate')
+        if not nearest:
             return explanation
-        distance = latest.get('distance_km')
+        name = nearest.get('name') or 'PFZ'
+        distance = nearest.get('distance_km')
         if isinstance(distance, (int, float)):
             distance = round(distance, 1)
-        distance_text = f", लगभग {distance} किमी दूर" if language == 'hi' and distance is not None else (
-            f", approximately {distance} km away" if distance is not None else ''
-        )
-        valid_until = latest.get('valid_until')
-        validity_text = f", {valid_until} तक मान्य" if language == 'hi' and valid_until else (
-            f", valid until {valid_until}" if valid_until else ''
-        )
         if language == 'hi':
-            notice = (
-                f"संदर्भ के लिए, नवीनतम प्रकाशित PFZ {name}{distance_text}{validity_text} है। "
-                "यह अनुरोधित समय के लिए मान्य नहीं है और सिफारिश नहीं है।"
+            distance_text = f" लगभग {distance} किमी दूर" if distance is not None else ''
+            explanation.answer = (
+                f"निकटतम वर्तमान आधिकारिक PFZ {name}{distance_text} है। "
+                "यह सभी ORCA सुरक्षा जाँच पास नहीं कर सका, इसलिए प्रस्थान से पहले आधिकारिक चेतावनियाँ और स्थानीय स्थितियाँ जाँचें।"
             )
         else:
-            notice = (
-                f"For reference, the latest published PFZ is {name}{distance_text}{validity_text}. "
-                "It is not valid for the requested time and is not a recommendation."
+            distance_text = f", approximately {distance} km away" if distance is not None else ''
+            explanation.answer = (
+                f"The nearest current official PFZ is {name}{distance_text}. "
+                "It did not pass every ORCA safety gate, so check official warnings and local conditions before departure."
             )
-        explanation.answer = f"{explanation.answer.rstrip()} {notice}"
         return explanation
 
     def _deterministic_fallback(

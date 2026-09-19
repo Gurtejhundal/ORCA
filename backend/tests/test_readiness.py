@@ -178,9 +178,32 @@ async def test_gemini_cannot_omit_future_pfz_reference_notice():
     )
 
     assert 'INCOIS PFZ 007' in result.answer
-    assert 'approximately 11.6 km away' in result.answer
-    assert 'not valid for the requested time' in result.answer
-    assert 'not a recommendation' in result.answer
+    assert 'INCOIS PFZ 007 (11.6 km)' in result.answer
+    assert 'valid until 2026-09-20T00:00:00+05:30' in result.answer
+    assert 'planning references' in result.answer
+    assert 'check the latest advisory' in result.answer
+
+
+@pytest.mark.asyncio
+async def test_nearest_current_pfz_is_named_even_when_safety_gates_exclude_it():
+    from backend.agents.explanation_agent import ExplanationAgent
+    from backend.agents.schemas import ExplanationOutput
+    from backend.llm.base import LLMProvider
+
+    llm = AsyncMock(spec=LLMProvider)
+    llm.generate_structured.return_value = ExplanationOutput(
+        answer='No destination can be recommended.', confidence=0.1
+    )
+    result = await ExplanationAgent(llm).explain(
+        query='Where should I fish near Kochi?', intent='nearest_safe_pfz', evidence=[], warnings=[],
+        analysis={'nearest_pfz_candidate': {
+            'name': 'INCOIS PFZ 021', 'distance_km': 55.267,
+        }},
+    )
+
+    assert result.answer.startswith('The nearest current official PFZ is INCOIS PFZ 021')
+    assert 'approximately 55.3 km away' in result.answer
+    assert 'check official warnings' in result.answer
 
 
 def test_chat_separates_conversation_from_marine_analysis(client):
