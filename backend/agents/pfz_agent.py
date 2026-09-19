@@ -27,6 +27,7 @@ class PFZAgent(BaseAgent):
         radius = input_data.task.params.get('radius', 150.0)
 
         if action == 'find_candidates':
+            reference_only = False
             resp = await self.service.pfz(
                 time=req_time, location=marine_loc, radius=radius, limit=limit
             )
@@ -39,6 +40,19 @@ class PFZAgent(BaseAgent):
                 if resp.results:
                     warnings.append(
                         f'No current PFZ found within {radius:g} km; showing nearest valid official PFZ advisories.'
+                    )
+            if not resp.results and req_time and req_time > utcnow() and marine_loc:
+                current_resp = await self.service.pfz(
+                    time=None, location=marine_loc, radius=None, limit=limit
+                )
+                warnings.extend(current_resp.missing_sources)
+                if current_resp.results:
+                    resp = current_resp
+                    reference_only = True
+                    latest_valid_until = max(z.valid_until for z in current_resp.results)
+                    warnings.append(
+                        'No INCOIS PFZ advisory is published for the requested future time. '
+                        f'Showing the latest currently valid advisory for reference only; it expires {latest_valid_until.isoformat()}.'
                     )
             zones = resp.results
             candidates = []
@@ -54,6 +68,8 @@ class PFZAgent(BaseAgent):
                     'source': z.source,
                     'source_reference': z.source_reference,
                     'geometry': z.geometry,
+                    'reference_only': reference_only,
+                    'valid_for_requested_time': not reference_only,
                 }
                 candidates.append(cand)
 
@@ -70,12 +86,12 @@ class PFZAgent(BaseAgent):
                             forecast_time=z.valid_from.isoformat() if z.valid_from else None,
                             fetched_at=z.fetched_at.isoformat() if hasattr(z, 'fetched_at') and z.fetched_at else utcnow().isoformat(),
                             freshness_minutes=getattr(z, 'freshness_minutes', 0.0) or 0.0,
-                            quality='official',
+                            quality='official_reference_only' if reference_only else 'official',
                             is_stale=getattr(z, 'is_stale', False) or False,
                         )
                     )
 
-            status = 'success' if candidates else 'partial' if not resp.missing_sources else 'failed'
+            status = 'partial' if reference_only else 'success' if candidates else 'partial' if not resp.missing_sources else 'failed'
             return AgentOutput(
                 agent=self.name,
                 status=status,

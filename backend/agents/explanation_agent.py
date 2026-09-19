@@ -106,6 +106,8 @@ Generate a structured explanation in language '{language}'.
 - If data is unavailable, acknowledge it directly.
 - Tie findings to the exact evidence IDs listed above.
 - NEVER invent values not present in the evidence list.
+- If latest_published_pfz is present, explain that it is the latest official advisory shown only for reference
+  and is not valid for the user's requested future time. Never recommend it as a destination.
 """
 
         try:
@@ -151,6 +153,7 @@ Generate a structured explanation in language '{language}'.
         risk = analysis.get('risk')
         ranked = analysis.get('recommended_pfz') or recommended_pfz
         nearest_candidate = analysis.get('nearest_pfz_candidate')
+        latest_published = analysis.get('latest_published_pfz')
         route = analysis.get('route')
         geofence = analysis.get('geofence')
 
@@ -166,6 +169,11 @@ Generate a structured explanation in language '{language}'.
             elif nearest_candidate:
                 direct.append(
                     f"निकटतम वर्तमान PFZ {nearest_candidate.get('name')} लगभग {nearest_candidate.get('distance_km')} किमी दूर है, लेकिन यह सुरक्षा जांच पास नहीं कर सका।"
+                )
+            elif latest_published:
+                direct.append(
+                    f"नवीनतम प्रकाशित PFZ {latest_published.get('name')} लगभग {latest_published.get('distance_km')} किमी दूर है, "
+                    f"लेकिन यह केवल संदर्भ के लिए है और अनुरोधित समय के लिए मान्य नहीं है।"
                 )
             elif intent in ('nearest_safe_pfz', 'nearest_pfz'):
                 direct.append('कोई PFZ सुरक्षा जांच पास नहीं कर सका, इसलिए कोई गंतव्य सुझाया नहीं गया है।')
@@ -200,6 +208,11 @@ Generate a structured explanation in language '{language}'.
             elif nearest_candidate:
                 direct.append(
                     f"The nearest current official PFZ is {nearest_candidate.get('name')}, approximately {nearest_candidate.get('distance_km')} km away, but it is not safety-cleared."
+                )
+            elif latest_published:
+                direct.append(
+                    f"The latest published PFZ is {latest_published.get('name')}, approximately "
+                    f"{latest_published.get('distance_km')} km away, but it is shown for reference only and is not valid for the requested time."
                 )
             elif intent in ('nearest_safe_pfz', 'nearest_pfz'):
                 direct.append('No PFZ passed the safety gates, so no destination is recommended.')

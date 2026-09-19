@@ -124,6 +124,41 @@ def test_mock_intent_recognizes_natural_fishing_question():
     assert result.intent == 'nearest_safe_pfz'
 
 
+@pytest.mark.asyncio
+async def test_future_pfz_query_returns_current_advisory_as_reference_only():
+    from backend.agents.pfz_agent import PFZAgent
+    from backend.agents.schemas import AgentInput, AgentTask, LocationRef
+    from backend.schemas.marine import Location, Zone, ZonesResponse
+
+    now = datetime.now(timezone.utc)
+    requested = now + timedelta(days=1)
+    location = Location(lat=18.922, lon=72.834)
+    empty = ZonesResponse(mode='live', status='unavailable', results=[], user_location=location,
+                          missing_sources=['No advisory for requested time'])
+    current_zone = Zone(
+        id='pfz-current', name='Current PFZ', geometry={'type': 'Point', 'coordinates': [72.7, 18.8]},
+        valid_from=now - timedelta(hours=6), valid_until=now + timedelta(hours=6),
+        source='INCOIS PFZ WFS', source_reference='https://incois.gov.in/',
+        fetched_at=now, expires_at=now + timedelta(hours=6), distance_km=12.3,
+    )
+    current = ZonesResponse(mode='live', status='ok', results=[current_zone], user_location=location)
+    service = AsyncMock()
+    service.pfz.side_effect = [empty, empty, current]
+
+    result = await PFZAgent(service).execute(AgentInput(
+        session_id='future-pfz', query='Where should I fish tomorrow?', intent='nearest_safe_pfz',
+        location=LocationRef(lat=location.lat, lon=location.lon, name='Mumbai'),
+        requested_time=requested.isoformat(),
+        task=AgentTask(id='pfz', agent='pfz_agent', action='find_candidates'),
+    ))
+
+    assert result.status == 'partial'
+    assert result.data['candidates'][0]['reference_only'] is True
+    assert result.data['candidates'][0]['valid_for_requested_time'] is False
+    assert result.evidence[0].quality == 'official_reference_only'
+    assert any('reference only' in warning for warning in result.warnings)
+
+
 def test_chat_separates_conversation_from_marine_analysis(client):
     import asyncio
     import json

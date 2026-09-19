@@ -491,6 +491,13 @@ class MarineOrchestrator:
         if intent_out.intent in ('nearest_safe_pfz', 'nearest_pfz') and ranked_payload is None:
             confidence = min(confidence, 0.1)
 
+        latest_published_pfz = None
+        if pfz_out:
+            latest_published_pfz = next(
+                (candidate for candidate in pfz_out.data.get('candidates', []) if candidate.get('reference_only')),
+                None,
+            )
+
         analysis_summary = {
             'risk': risk_payload['risk'] if risk_payload else None,
             'recommended_pfz': ranked_payload,
@@ -502,6 +509,7 @@ class MarineOrchestrator:
                 'recommended_action': geofence_payload.get('recommended_action'),
             } if geofence_payload else None),
             'nearest_pfz_candidate': ranked_candidates_payload[0] if ranked_candidates_payload else None,
+            'latest_published_pfz': latest_published_pfz,
         }
 
         # 13. Generate the user-facing explanation from the final deterministic result.
