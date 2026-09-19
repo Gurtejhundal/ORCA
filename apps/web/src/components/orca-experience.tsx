@@ -17,6 +17,7 @@ import { OrcaNav } from './hero/orca-nav';
 import type { AppLanguage } from './hero/ask-orca-bar';
 import type { MarineToolId } from './hero/marine-tool-dock';
 import { LandingSections } from './landing-sections';
+import { AgentChatTrace, AgentThinkingIndicator } from './agent-chat-trace';
 
 type View = 'chat' | 'workspace' | 'evidence';
 type ChatTurn = {
@@ -208,12 +209,20 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
             <div className="chat-message chat-message--user"><span>{copy.user}</span><p>{turn.query}</p></div>
             <div className="chat-message chat-message--orca">
               <span><Waves size={14} />{copy.assistant}</span>
-              {!turn.guide && !turn.response && !turn.error && <div className="chat-thinking" role="status"><i /><i /><i />{copy.thinking}</div>}
+              {!turn.guide && !turn.response && !turn.error && (
+                <AgentThinkingIndicator language={language} />
+              )}
               {turn.error && <div className="chat-error" role="alert">{turn.error === CHAT_COPY.en.interrupted ? copy.interrupted : turn.error}</div>}
               {turn.guide && <div className="chat-answer"><p>{turn.guide}</p></div>}
               {turn.response && (
                 <div className="chat-answer">
                   <p>{turn.response.answer}</p>
+                  <AgentChatTrace
+                    toolCalls={turn.response.tool_calls}
+                    tasks={turn.response.data?.tasks as Array<{ id: string; agent: string; action: string }> | undefined}
+                    intent={turn.response.intent}
+                    language={language}
+                  />
                   <div className="chat-answer__meta">
                     {turn.response.intent === 'general_conversation' ? <span>{copy.conversation}</span> : <>
                       <span>{Math.round(turn.response.confidence * 100)}% {copy.confidence}</span>

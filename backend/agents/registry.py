@@ -6,6 +6,7 @@ from backend.agents.ocean_agent import OceanAgent
 from backend.agents.hazard_agent import HazardAgent
 from backend.agents.geospatial_agent import GeospatialAgent
 from backend.agents.satellite_agent import SatelliteAgent
+from backend.agents.search_agent import WebSearchAgent
 from backend.services.marine import MarineService
 
 
@@ -21,6 +22,7 @@ class AgentRegistry:
             'hazard_agent': HazardAgent(marine_service),
             'geospatial_agent': GeospatialAgent(marine_service),
             'satellite_agent': SatelliteAgent(marine_service),
+            'web_search_agent': WebSearchAgent(),
         }
 
     def get(self, name: str) -> BaseAgent | None:

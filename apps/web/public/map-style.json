@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "name": "SamudraAI OpenStreetMap raster base",
+  "name": "ORCA Marine Map Style with OpenSeaMap & GEBCO",
   "sources": {
     "openstreetmap": {
       "type": "raster",
@@ -8,6 +8,13 @@
       "tileSize": 256,
       "maxzoom": 19,
       "attribution": "© OpenStreetMap contributors"
+    },
+    "openseamap": {
+      "type": "raster",
+      "tiles": ["https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"],
+      "tileSize": 256,
+      "maxzoom": 18,
+      "attribution": "© OpenSeaMap contributors"
     }
   },
   "layers": [
@@ -17,6 +24,16 @@
       "source": "openstreetmap",
       "minzoom": 0,
       "maxzoom": 19
+    },
+    {
+      "id": "openseamap-seamarks",
+      "type": "raster",
+      "source": "openseamap",
+      "minzoom": 0,
+      "maxzoom": 18,
+      "paint": {
+        "raster-opacity": 0.95
+      }
     }
   ]
 }
