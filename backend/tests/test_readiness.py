@@ -19,6 +19,25 @@ def test_unqueried_data_is_not_live():
     assert summary.datasets['gps'].freshness_status == 'unavailable'
 
 
+def test_invalid_llm_provider_is_redacted_from_public_status():
+    secret_like_value = 'secret-value-that-must-not-be-returned'
+    config = Settings(
+        _env_file=None,
+        database_url='',
+        demo_mode=True,
+        llm_provider=secret_like_value,
+    )
+    with TestClient(create_app(config)) as status_client:
+        payload = status_client.get('/api/v1/system/status').json()
+
+    assert payload['sources']['llm'] == {
+        'status': 'invalid_configuration',
+        'provider': 'invalid',
+        'model': None,
+    }
+    assert secret_like_value not in str(payload)
+
+
 def test_expiry_and_demo_preserve_real_times():
     now = datetime.now(timezone.utc)
     item = evaluate_item_freshness('weather', 'fixture', now, expires_at=now-timedelta(seconds=1))

@@ -45,15 +45,19 @@ async def status(request: Request, svc: MarineService = Depends(service)):
     llm_status = 'mock' if isinstance(llm_prov, MockLLMProvider) else 'configured_unverified' if llm_prov else 'unavailable'
 
     sources['voice'] = {'status': voice_status, 'provider': 'bhashini_or_browser'}
-    configured_provider = svc.settings.llm_provider.lower()
+    configured_provider = svc.settings.llm_provider.strip().lower()
+    allowed_providers = {'gemini', 'google', 'openai', 'mock'}
+    provider_label = configured_provider if configured_provider in allowed_providers else 'invalid'
+    if provider_label == 'invalid':
+        llm_status = 'invalid_configuration'
     configured_model = (
         svc.settings.gemini_model if configured_provider in ('gemini', 'google')
         else svc.settings.llm_model
     )
     sources['llm'] = {
         'status': llm_status,
-        'provider': configured_provider,
-        'model': configured_model if llm_status != 'mock' else None,
+        'provider': provider_label,
+        'model': configured_model if llm_status not in ('mock', 'invalid_configuration') else None,
     }
 
     freshness_svc = svc.freshness
