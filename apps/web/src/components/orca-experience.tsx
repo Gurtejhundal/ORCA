@@ -334,10 +334,6 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
           onSelectPrompt={(prompt) => void onSubmit(prompt)}
         />
       </div>
-          language={language}
-          onSelectPrompt={(prompt) => void onSubmit(prompt)}
-        />
-      </div>
       <ChatComposer language={language} pending={pending} onSubmit={onSubmit} />
     </div>
   );
