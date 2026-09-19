@@ -791,6 +791,34 @@
   height: 100% !important;
 }
 
+.chat-mini-map {
+  position: relative;
+  height: 220px;
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(182, 230, 228, .16);
+  border-radius: 16px;
+  background: rgba(4, 30, 41, .42);
+  box-shadow: 0 18px 45px rgba(0, 12, 18, .2);
+}
+
+.chat-mini-map--loading {
+  height: 160px;
+  background: linear-gradient(110deg, rgba(255,255,255,.035), rgba(255,255,255,.08), rgba(255,255,255,.035));
+  background-size: 220% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+.chat-mini-map__canvas,
+.chat-mini-map__canvas .maplibregl-map,
+.chat-mini-map__canvas .maplibregl-canvas-container,
+.chat-mini-map__canvas .maplibregl-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .chat-map-preview .map-title,
 .chat-map-preview .map-north,
 .chat-map-preview .map-sea-name,
@@ -880,6 +908,43 @@
   backdrop-filter: blur(18px);
 }
 
+.chat-mini-map__label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.chat-mini-map__label span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(3, 25, 35, .72);
+  color: #dff8f4;
+  font: 9px var(--font-mono);
+  letter-spacing: .08em;
+  backdrop-filter: blur(18px);
+}
+
+.chat-mini-map__label button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(3, 25, 35, .72);
+  color: #effcf8;
+  pointer-events: auto;
+  cursor: pointer;
+  backdrop-filter: blur(18px);
+}
+
 .chat-map-preview .map-layer-controls button[aria-pressed='true'] {
   color: #fff;
   box-shadow: inset 0 -2px var(--orca-accent);
@@ -932,6 +997,68 @@
 
 .chat-map-preview > .chat-map-action {
   margin: 12px 14px 14px;
+}
+
+.chat-mini-map__error {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 10px;
+  border-left: 2px solid #d97872;
+  background: rgba(72, 26, 28, .7);
+  color: #ffd7d0;
+  font-size: 12px;
+}
+
+.chat-mini-map .zone-marker,
+.chat-mini-map .origin-marker {
+  border: 1px solid rgba(236, 255, 251, .85);
+  box-shadow: 0 8px 20px rgba(0, 8, 12, .35);
+}
+
+.chat-mini-map .zone-marker {
+  position: relative;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(53, 144, 193, .85);
+  color: #ffffff;
+  font: 9px var(--font-mono);
+}
+
+.chat-mini-map .zone-marker.recommended {
+  background: rgba(64, 196, 160, .9);
+}
+
+.chat-mini-map .zone-marker.rejected {
+  background: rgba(215, 102, 104, .9);
+}
+
+.chat-mini-map .zone-map-label {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  width: max-content;
+  max-width: 150px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(3, 25, 35, .78);
+  color: #effcf8;
+  font-size: 9px;
+  transform: translateX(-50%);
+}
+
+.chat-mini-map .origin-marker {
+  display: grid;
+  min-width: 24px;
+  min-height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(245, 252, 249, .92);
+  color: #0e3440;
 }
 
 .chat-composer {

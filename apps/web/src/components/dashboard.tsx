@@ -41,6 +41,7 @@ import { RouteComparisonCard } from './route-comparison-card';
 import { SimulationWidget } from './simulation-widget';
 import { GeofenceAlertBanner } from './geofence-alert';
 import { MapLegend } from './map-legend';
+import { FishHotspots } from './fish-hotspots';
 import {
   marineApi,
   type RankedPFZCandidate,
@@ -478,6 +479,8 @@ export function Dashboard({
                     </article>
                   ))}
                 </section>
+              ) : workspaceTool === 'fishes' ? (
+                <FishHotspots location={currentLocation} language={language} />
               ) : (
                 <MarineData location={currentLocation} onLocation={setCurrentLocation} onLayer={setMarineLayer} language={language} tool={workspaceTool} />
               )}

@@ -1,10 +1,11 @@
 'use client';
 
-import { Crosshair, Layers3, Route, SlidersHorizontal, TriangleAlert, Waves } from 'lucide-react';
+import { Crosshair, Fish, Layers3, Route, SlidersHorizontal, TriangleAlert, Waves } from 'lucide-react';
 import type { AppLanguage } from './ask-orca-bar';
 
 const TOOLS = [
   { id: 'fishing', en: 'Fishing Zones', hi: 'मछली क्षेत्र', helpEn: 'PFZ areas', helpHi: 'PFZ क्षेत्र', icon: Crosshair },
+  { id: 'fishes', en: 'Fishes', hi: 'मछलियाँ', helpEn: 'Local grounds', helpHi: 'स्थानीय क्षेत्र', icon: Fish },
   { id: 'conditions', en: 'Conditions', hi: 'समुद्री स्थिति', helpEn: 'Waves and wind', helpHi: 'लहर और हवा', icon: Waves },
   { id: 'alerts', en: 'Alerts', hi: 'चेतावनी', helpEn: 'Warnings', helpHi: 'चेतावनी', icon: TriangleAlert },
   { id: 'route', en: 'Route', hi: 'मार्ग', helpEn: 'Safe passage', helpHi: 'सुरक्षित मार्ग', icon: Route },
