@@ -159,6 +159,30 @@ async def test_future_pfz_query_returns_current_advisory_as_reference_only():
     assert any('reference only' in warning for warning in result.warnings)
 
 
+@pytest.mark.asyncio
+async def test_gemini_cannot_omit_future_pfz_reference_notice():
+    from backend.agents.explanation_agent import ExplanationAgent
+    from backend.agents.schemas import ExplanationOutput
+    from backend.llm.base import LLMProvider
+
+    llm = AsyncMock(spec=LLMProvider)
+    llm.generate_structured.return_value = ExplanationOutput(
+        answer='No PFZ advisory is valid for tomorrow.', confidence=0.1
+    )
+    result = await ExplanationAgent(llm).explain(
+        query='Where should I fish tomorrow?', intent='nearest_safe_pfz', evidence=[], warnings=[],
+        analysis={'latest_published_pfz': {
+            'name': 'INCOIS PFZ 007', 'distance_km': 11.5823,
+            'valid_until': '2026-09-20T00:00:00+05:30',
+        }},
+    )
+
+    assert 'INCOIS PFZ 007' in result.answer
+    assert 'approximately 11.6 km away' in result.answer
+    assert 'not valid for the requested time' in result.answer
+    assert 'not a recommendation' in result.answer
+
+
 def test_chat_separates_conversation_from_marine_analysis(client):
     import asyncio
     import json
