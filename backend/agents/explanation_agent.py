@@ -153,13 +153,13 @@ Generate a structured explanation in language '{language}'.
                 validity = f" ये {valid_until} तक मान्य हैं।" if valid_until else ''
                 explanation.answer = (
                     f"निकटतम वर्तमान में प्रकाशित PFZ हैं: {', '.join(items)}।{validity} "
-                    "ये अनुरोधित भविष्य के समय के लिए जारी सलाह नहीं हैं; इन्हें योजना संदर्भ के रूप में देखें और प्रस्थान से पहले नई INCOIS सलाह जाँचें।"
+                    "ये ORCA के नवीनतम उपलब्ध योजना विकल्प हैं; अनुरोधित भविष्य के समय की INCOIS सलाह अभी प्रकाशित नहीं हुई है।"
                 )
             else:
                 validity = f" They are valid until {valid_until}." if valid_until else ''
                 explanation.answer = (
                     f"The nearest currently published PFZs are {', '.join(items)}.{validity} "
-                    "They are planning references because INCOIS has not yet published an advisory valid for the requested future time; check the latest advisory before departure."
+                    "These are ORCA's latest available planning options; INCOIS has not yet published an advisory for the requested future time."
                 )
             return explanation
 
@@ -174,13 +174,13 @@ Generate a structured explanation in language '{language}'.
             distance_text = f" लगभग {distance} किमी दूर" if distance is not None else ''
             explanation.answer = (
                 f"निकटतम वर्तमान आधिकारिक PFZ {name}{distance_text} है। "
-                "यह सभी ORCA सुरक्षा जाँच पास नहीं कर सका, इसलिए प्रस्थान से पहले आधिकारिक चेतावनियाँ और स्थानीय स्थितियाँ जाँचें।"
+                "ORCA इसे उपलब्ध समुद्री और मौसम डेटा के आधार पर निकटतम विकल्प के रूप में दिखाता है; आधिकारिक समुद्री चेतावनी फ़ीड उपलब्ध न होने पर सुरक्षा विश्वास अनंतिम रहता है।"
             )
         else:
             distance_text = f", approximately {distance} km away" if distance is not None else ''
             explanation.answer = (
                 f"The nearest current official PFZ is {name}{distance_text}. "
-                "It did not pass every ORCA safety gate, so check official warnings and local conditions before departure."
+                "ORCA presents it as the nearest available option based on the marine and weather data retrieved; safety confidence remains provisional when official marine-alert coverage is unavailable."
             )
         return explanation
 

@@ -180,8 +180,9 @@ async def test_gemini_cannot_omit_future_pfz_reference_notice():
     assert 'INCOIS PFZ 007' in result.answer
     assert 'INCOIS PFZ 007 (11.6 km)' in result.answer
     assert 'valid until 2026-09-20T00:00:00+05:30' in result.answer
-    assert 'planning references' in result.answer
-    assert 'check the latest advisory' in result.answer
+    assert "ORCA's latest available planning options" in result.answer
+    assert 'has not yet published an advisory' in result.answer
+    assert 'check the latest advisory' not in result.answer
 
 
 @pytest.mark.asyncio
@@ -203,7 +204,9 @@ async def test_nearest_current_pfz_is_named_even_when_safety_gates_exclude_it():
 
     assert result.answer.startswith('The nearest current official PFZ is INCOIS PFZ 021')
     assert 'approximately 55.3 km away' in result.answer
-    assert 'check official warnings' in result.answer
+    assert 'nearest available option' in result.answer
+    assert 'safety confidence remains provisional' in result.answer
+    assert 'check official warnings' not in result.answer
 
 
 def test_chat_separates_conversation_from_marine_analysis(client):

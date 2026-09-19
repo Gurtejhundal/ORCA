@@ -426,7 +426,9 @@ class MarineOrchestrator:
                         source=top_cand.source,
                     )
                 else:
-                    all_warnings.append('No PFZ passed the safety gates; no safe destination is recommended.')
+                    all_warnings.append(
+                        'No PFZ met every safety gate; nearest official PFZs are still shown with provisional confidence.'
+                    )
 
             # Deterministic Routing & Route Comparison
             if intent_out.intent in ('route_request', 'nearest_safe_pfz'):
