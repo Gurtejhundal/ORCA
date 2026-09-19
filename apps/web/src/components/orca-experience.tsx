@@ -18,6 +18,7 @@ import type { AppLanguage } from './hero/ask-orca-bar';
 import type { MarineToolId } from './hero/marine-tool-dock';
 import { LandingSections } from './landing-sections';
 import { AgentChatTrace, AgentThinkingIndicator } from './agent-chat-trace';
+import { RegionalFishDropdowns } from './regional-fish-dropdowns';
 
 type View = 'chat' | 'workspace' | 'evidence';
 type ChatTurn = {
@@ -278,54 +279,64 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
         <span><History size={15} /><span><strong>{copy.recent}</strong><small>{turns.length} {exchangeLabel}</small></span></span>
         {turns.length > 0 ? <button className="chat-session-bar__delete" type="button" disabled={pending} onClick={onDelete}><Trash2 size={14} aria-hidden="true" />{copy.deleteChat}</button> : null}
       </div>
-      <div className="chat-thread" aria-live="polite">
-        {turns.length === 0 && (
-          <div className="chat-empty">
-            <span className="view-eyebrow">{copy.ready}</span>
-            <h1>{copy.title}</h1>
-            <p>{copy.intro}</p>
-          </div>
-        )}
-        {turns.map((turn) => (
-          <div className="chat-turn" key={turn.id}>
-            <div className="chat-message chat-message--user"><span>{copy.user}</span><p>{turn.query}</p></div>
-            <div className="chat-message chat-message--orca">
-              <span><Waves size={14} />{copy.assistant}</span>
-              {!turn.guide && !turn.response && !turn.error && (
-                <AgentThinkingIndicator language={language} />
-              )}
-              {turn.error && <div className="chat-error" role="alert">{turn.error === CHAT_COPY.en.interrupted ? copy.interrupted : turn.error}</div>}
-              {turn.guide && (
-                <div className="chat-answer">
-                  <FormattedAnswer text={turn.guide} />
-                </div>
-              )}
-              {turn.response && (
-                <div className="chat-answer">
-                  <FormattedAnswer text={turn.response.answer} />
-                  <AgentChatTrace
-                    toolCalls={turn.response.tool_calls}
-                    tasks={turn.response.data?.tasks as Array<{ id: string; agent: string; action: string }> | undefined}
-                    intent={turn.response.intent}
-                    language={language}
-                  />
-                  <div className="chat-answer__meta">
-                    {turn.response.intent === 'general_conversation' ? <span>{copy.conversation}</span> : <>
-                      <span>{Math.round(turn.response.confidence * 100)}% {copy.confidence}</span>
-                      <span>{turn.response.sources.join(' · ') || copy.noSources}</span>
-                    </>}
-                    <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
-                  </div>
-                  {hasMapConfiguration(turn.response) && (
-                    <ChatMapPreview response={turn.response} decision={initialDecision} language={language} onOpenMap={() => onOpenMap(turn.response)} />
-                  )}
-                </div>
-              )}
-              {turn.mapRequested && <button className="chat-map-action" type="button" onClick={() => onOpenMap()}><Map size={15} />{copy.map}</button>}
+      <div className="chat-body-container">
+        <div className="chat-thread" aria-live="polite">
+          {turns.length === 0 && (
+            <div className="chat-empty">
+              <span className="view-eyebrow">{copy.ready}</span>
+              <h1>{copy.title}</h1>
+              <p>{copy.intro}</p>
             </div>
-          </div>
-        ))}
-        <div ref={endRef} />
+          )}
+          {turns.map((turn) => (
+            <div className="chat-turn" key={turn.id}>
+              <div className="chat-message chat-message--user"><span>{copy.user}</span><p>{turn.query}</p></div>
+              <div className="chat-message chat-message--orca">
+                <span><Waves size={14} />{copy.assistant}</span>
+                {!turn.guide && !turn.response && !turn.error && (
+                  <AgentThinkingIndicator language={language} />
+                )}
+                {turn.error && <div className="chat-error" role="alert">{turn.error === CHAT_COPY.en.interrupted ? copy.interrupted : turn.error}</div>}
+                {turn.guide && (
+                  <div className="chat-answer">
+                    <FormattedAnswer text={turn.guide} />
+                  </div>
+                )}
+                {turn.response && (
+                  <div className="chat-answer">
+                    <FormattedAnswer text={turn.response.answer} />
+                    <AgentChatTrace
+                      toolCalls={turn.response.tool_calls}
+                      tasks={turn.response.data?.tasks as Array<{ id: string; agent: string; action: string }> | undefined}
+                      intent={turn.response.intent}
+                      language={language}
+                    />
+                    <div className="chat-answer__meta">
+                      {turn.response.intent === 'general_conversation' ? <span>{copy.conversation}</span> : <>
+                        <span>{Math.round(turn.response.confidence * 100)}% {copy.confidence}</span>
+                        <span>{turn.response.sources.join(' · ') || copy.noSources}</span>
+                      </>}
+                      <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
+                    </div>
+                    {hasMapConfiguration(turn.response) && (
+                      <ChatMapPreview response={turn.response} decision={initialDecision} language={language} onOpenMap={() => onOpenMap(turn.response)} />
+                    )}
+                  </div>
+                )}
+                {turn.mapRequested && <button className="chat-map-action" type="button" onClick={() => onOpenMap()}><Map size={15} />{copy.map}</button>}
+              </div>
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
+        <RegionalFishDropdowns
+          language={language}
+          onSelectPrompt={(prompt) => void onSubmit(prompt)}
+        />
+      </div>
+          language={language}
+          onSelectPrompt={(prompt) => void onSubmit(prompt)}
+        />
       </div>
       <ChatComposer language={language} pending={pending} onSubmit={onSubmit} />
     </div>
