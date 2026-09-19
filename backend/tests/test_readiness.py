@@ -204,6 +204,23 @@ def test_gemini_uses_private_header_and_reads_complete_answers(monkeypatch):
         asyncio.run(provider.generate_text('blocked', system_prompt='Be helpful.'))
 
 
+def test_gemini_prefers_provider_specific_key_and_model():
+    from backend.llm.provider import GeminiLLMProvider, get_llm_provider
+
+    provider = get_llm_provider(Settings(
+        _env_file=None,
+        llm_provider='gemini',
+        llm_api_key='generic-key',
+        llm_model='generic-model',
+        gemini_api_key='gemini-key',
+        gemini_model='gemini-3.1-flash-lite',
+    ))
+
+    assert isinstance(provider, GeminiLLMProvider)
+    assert provider.api_key == 'gemini-key'
+    assert provider.model == 'gemini-3.1-flash-lite'
+
+
 def test_groq_uses_provider_specific_key_model_and_json_mode(monkeypatch):
     import asyncio
     import json

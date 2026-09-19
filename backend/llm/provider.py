@@ -397,8 +397,11 @@ class GeminiLLMProvider(LLMProvider):
 def get_llm_provider(settings: Settings) -> LLMProvider:
     """Factory creating the appropriate LLM provider based on settings."""
     provider = settings.llm_provider.lower()
-    if provider in ('gemini', 'google') and settings.llm_api_key:
-        return GeminiLLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gemini-3.1-flash-lite')
+    if provider in ('gemini', 'google') and (settings.gemini_api_key or settings.llm_api_key):
+        return GeminiLLMProvider(
+            api_key=settings.gemini_api_key or settings.llm_api_key,
+            model=settings.gemini_model or settings.llm_model or 'gemini-3.1-flash-lite',
+        )
     elif provider == 'openai' and settings.llm_api_key:
         return OpenAILLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gpt-4o-mini')
     elif provider == 'groq' and (settings.groq_api_key or settings.llm_api_key):

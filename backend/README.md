@@ -265,8 +265,10 @@ Supported actions:
 | Variable | Description |
 |---|---|
 | `LLM_PROVIDER` | LLM backend: `gemini`, `openai`, `groq`, or `mock` (default `mock`) |
-| `LLM_MODEL` | Target model name (e.g. `gemini-1.5-flash`, `gpt-4o-mini`) |
-| `LLM_API_KEY` | API key for LLM provider (not required if `LLM_PROVIDER=mock`) |
+| `GEMINI_API_KEY` | Google AI Studio API key used when `LLM_PROVIDER=gemini`; preferred over the generic key |
+| `GEMINI_MODEL` | Gemini model ID; defaults to `gemini-3.1-flash-lite` |
+| `LLM_MODEL` | Generic target model name retained for OpenAI and backward compatibility |
+| `LLM_API_KEY` | Generic API key retained for OpenAI and backward compatibility |
 | `GROQ_API_KEY` | Groq API key used when `LLM_PROVIDER=groq`; preferred over the generic `LLM_API_KEY` |
 | `GROQ_MODEL` | Groq model ID; defaults to `llama-3.3-70b-versatile` |
 | `BHASHINI_API_KEY` | Bhashini ULCA inference API authorization key |
