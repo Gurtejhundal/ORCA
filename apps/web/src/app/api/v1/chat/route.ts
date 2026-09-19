@@ -130,9 +130,28 @@ export async function POST(req: NextRequest) {
             searchResults.map((r) => `- [${r.domain}] ${r.snippet}`).join('\n')
           : '';
 
+      const marineSystemPrompt = `You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert Indian marine decision assistant.
+
+STRICT FORMATTING & OUTPUT RULES:
+- NEVER output markdown tables or large blocks of text. Keep all responses clean, structured, and conversational.
+- If the user asks a broad question (e.g. "where in whole india can i go for fishing", "best fishing spots in India", or asking for options):
+  1. Give a crisp 1-sentence intro.
+  2. Present a clean, numbered Top 5 list:
+     1. **[Location Name]** ([State/Region]) – [Target Species]. [1-sentence brief highlight and best season].
+     2. ...
+  3. End by asking: "Which one of these would you like to explore in detail?"
+- If the user asks about or chooses a specific location or single trip:
+  1. Give a brief recommendation (1-2 sentences).
+  2. Provide a short bulleted list:
+     • **Target Species & Zone**: [1 line]
+     • **Sea Conditions**: Waves [X]m, Depth [Y]m, Swell [Z]s (from verified sensor feeds)
+     • **Key Tips & Safety**: [1 line]
+  3. End by asking if they want to plot the route or check harbor departure times.
+- Language: Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
+
       const omniResponse = await callOmniroute(
-        `User query: "${query}"\n\nDecision Result:\n${baseAnswer}${multiSourceContext}${searchContext}\n\nRespond with a clear, helpful, and concise answer explaining the recommendation in ${language === 'hi' ? 'Hindi' : 'English'}. Include key safety, zone, depth, and route findings.`,
-        'You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert Indian marine decision assistant. State facts accurately without inventing safety measurements.',
+        `User query: "${query}"\n\nDecision Result:\n${baseAnswer}${multiSourceContext}${searchContext}\n\nFormat the response strictly following the formatting rules.`,
+        marineSystemPrompt,
       );
 
       const finalAnswer = omniResponse || baseAnswer;
@@ -297,17 +316,32 @@ export async function POST(req: NextRequest) {
             .join('\n\n')
         : '';
 
-    const prompt = `User Question: "${query}"${searchSnippets}\n\nPlease provide an accurate, helpful, and concise answer in ${language === 'hi' ? 'Hindi' : 'English'}. If the answer is grounded in the search findings, refer to the relevant facts naturally and accurately.`;
+    const systemPrompt = `You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert AI assistant for fishermen, anglers, and marine operators in India.
 
-    const omniResponse = await callOmniroute(
-      prompt,
-      `You are ORCA (Marine EcOsystem Reasoning with Collaborative Agents), an expert AI assistant for fishermen and maritime operators in India. Answer questions politely, factually, and informatively.`,
-    );
+FORMATTING & STYLE RULES:
+- Keep answers concise, clean, and conversational. NEVER output massive unreadable tables or long walls of text.
+- If the user asks a broad question (e.g. "best fishing spots in India", "where can I fish", or a list of options):
+  1. Give a crisp 1-2 sentence introduction.
+  2. Present a clean, numbered Top 5 (or Top 5-7) list where each item has:
+     - **Location Name** (Region/State) – Target species, 1-line brief reason why it's great, and best season.
+  3. End with an interactive follow-up question asking which spot they would like to explore in detail.
+- If the user chooses or asks about a specific location or topic:
+  1. Give a structured breakdown in short bullet points:
+     - **Key Highlights & Species**
+     - **Best Season & Weather/Safety**
+     - **Permits & Practical Tips**
+  2. Keep each point to 1-2 lines maximum.
+  3. Offer to check live sea conditions or plot a route.
+- Respond in ${language === 'hi' ? 'Hindi' : 'English'}.`;
+
+    const prompt = `User Query: "${query}"${searchSnippets}\n\nProvide a cleanly formatted, engaging, and concise response following the formatting rules.`;
+
+    const omniResponse = await callOmniroute(prompt, systemPrompt);
 
     const fallbackAnswer =
       language === 'hi'
-        ? 'मैं ORCA हूँ, आपकी समुद्री यात्रा, मत्स्य क्षेत्र और सुरक्षा में मदद के लिए तैयार।'
-        : 'I am ORCA, your marine ecosystem reasoning assistant for safe fishing zones, weather conditions, and voyage routing.';
+        ? 'मैं ORCA हूँ, आपकी समुद्री यात्रा, मत्स्य क्षेत्र और सुरक्षा में मदद के लिए तैयार। आप किस क्षेत्र के बारे में जानना चाहते हैं?'
+        : 'I am ORCA, your marine decision assistant. Which coastal region or fishing location would you like to explore?';
 
     const answer = omniResponse || fallbackAnswer;
 
