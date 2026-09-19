@@ -11,7 +11,7 @@ import {
   Volume2,
   Waves,
 } from 'lucide-react';
-import { marineApi, type ChatResponsePayload, type Location } from '@/services/marine-api';
+import { marineApi, type ChatResponsePayload } from '@/services/marine-api';
 import { OrcaHero } from './hero/orca-hero';
 import { OrcaNav } from './hero/orca-nav';
 import type { AppLanguage } from './hero/ask-orca-bar';
@@ -33,9 +33,9 @@ type ChatTurn = {
 const Dashboard = dynamic(() => import('./dashboard').then((module) => module.Dashboard), {
   loading: () => <div className="workspace-skeleton" role="status" aria-label="Loading marine workspace"><i /><i /><i /></div>,
 });
-const MarineMap = dynamic(() => import('./marine-map').then((module) => module.MarineMap), {
+const ChatMiniMap = dynamic(() => import('./chat-mini-map').then((module) => module.ChatMiniMap), {
   ssr: false,
-  loading: () => <div className="chat-map-preview__loading" role="status">Loading configured map…</div>,
+  loading: () => <div className="chat-mini-map chat-mini-map--loading" aria-hidden="true" />,
 });
 
 const CHAT_STORAGE_KEY = 'orca-recent-chat-v1';
@@ -144,7 +144,12 @@ async function speakAnswer(text: string, language: string) {
 }
 
 function hasMapConfiguration(response: ChatResponsePayload) {
-  return response.map_actions.length > 0 || !!response.route || !!response.recommended_pfz || !!response.data.ranked_pfz;
+  return response.map_actions.length > 0 ||
+    !!response.route ||
+    !!response.route_comparison ||
+    !!response.recommended_pfz ||
+    !!response.data.ranked_pfz ||
+    !!response.data.ranked_pfz_candidates?.length;
 }
 
 function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; pending: boolean; onSubmit: (query: string) => Promise<void> }) {
@@ -164,22 +169,6 @@ function ChatComposer({ language, pending, onSubmit }: { language: AppLanguage; 
       <input id="orca-follow-up" value={message} disabled={pending} onChange={(event) => setMessage(event.target.value)} placeholder={copy.placeholder} autoComplete="off" autoFocus />
       <button type="submit" disabled={pending || !message.trim()} aria-label={copy.send}><ArrowUp size={17} /></button>
     </form>
-  );
-}
-
-function ChatMapPreview({ response, decision, language, onOpenMap }: { response: ChatResponsePayload; decision?: DecisionResponse; language: AppLanguage; onOpenMap: () => void }) {
-  const copy = CHAT_COPY[language];
-  const location: Location | undefined = response.location ?? undefined;
-  if (!decision) return null;
-  return (
-    <section className="chat-map-preview" aria-label={copy.mapPreview}>
-      <div className="chat-map-preview__header">
-        <span><Map size={14} />{copy.mapPreview}</span>
-        <small>{response.map_actions.length || 1} {copy.autoConfig}</small>
-      </div>
-      <MarineMap decision={decision} onSelectZone={() => {}} currentLocation={location} mapActions={response.map_actions} language={language} />
-      <button className="chat-map-action" type="button" onClick={onOpenMap}><Map size={15} />{copy.map}</button>
-    </section>
   );
 }
 
@@ -265,7 +254,7 @@ export function FormattedAnswer({ text }: { text?: string }) {
   );
 }
 
-function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; initialDecision?: DecisionResponse; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
+function ChatView({ turns, pending, language, onSubmit, onOpenMap, onDelete }: { turns: ChatTurn[]; pending: boolean; language: AppLanguage; onSubmit: (query: string) => Promise<void>; onOpenMap: (response?: ChatResponsePayload) => void; onDelete: () => void }) {
   const endRef = useRef<HTMLDivElement>(null);
   const copy = CHAT_COPY[language];
   useEffect(() => {
@@ -318,9 +307,7 @@ function ChatView({ turns, pending, language, initialDecision, onSubmit, onOpenM
                       </>}
                       <button type="button" onClick={() => void speakAnswer(turn.response!.answer, turn.response!.language)} aria-label={copy.readAloud}><Volume2 size={15} /></button>
                     </div>
-                    {hasMapConfiguration(turn.response) && (
-                      <ChatMapPreview response={turn.response} decision={initialDecision} language={language} onOpenMap={() => onOpenMap(turn.response)} />
-                    )}
+                    <ChatMiniMap response={turn.response} onOpenMap={() => onOpenMap(turn.response)} />
                   </div>
                 )}
                 {turn.mapRequested && <button className="chat-map-action" type="button" onClick={() => onOpenMap()}><Map size={15} />{copy.map}</button>}
@@ -546,7 +533,7 @@ export function OrcaExperience({ initialDecision, initialContext }: { initialDec
         <section className={`experience-overlay experience-overlay--${view}`} aria-label={language === 'hi' ? 'ORCA दृश्य' : `${view} view`}>
           <div className="experience-page">
             {view === 'chat' ? (
-              <ChatView turns={turns} pending={pending} language={language} initialDecision={initialDecision} onSubmit={runQuery} onOpenMap={(response) => { setWorkspaceChat(response); openView('workspace'); }} onDelete={deleteChat} />
+              <ChatView turns={turns} pending={pending} language={language} onSubmit={runQuery} onOpenMap={(response) => { setWorkspaceChat(response); openView('workspace'); }} onDelete={deleteChat} />
             ) : view === 'workspace' ? (
               initialDecision && initialContext ? <Dashboard initialDecision={initialDecision} initialContext={initialContext} embedded language={language} workspaceTool={activeTool ?? 'fishing'} initialChat={workspaceChat} /> : <div className="workspace-unavailable" role="alert"><Map size={24} /><h1>{language === 'hi' ? 'कार्यस्थल डेटा उपलब्ध नहीं है।' : 'Workspace data is unavailable.'}</h1><p>{language === 'hi' ? 'ORCA के निर्णय इंजन से दोबारा जुड़ने तक बातचीत उपलब्ध रहेगी।' : 'The conversation remains available while ORCA reconnects to the decision engine.'}</p></div>
             ) : (

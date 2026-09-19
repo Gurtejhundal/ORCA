@@ -209,6 +209,28 @@
 .marine-data-mode, .marine-data-note { color: var(--orca-warning) !important; }
 .workspace-answer { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(225,247,242,.14); }
 .workspace-answer p { color: var(--orca-text-secondary); font-size: 14px; white-space: pre-wrap; }
+.fish-hotspots__layout { display: grid; gap: 14px; margin-top: 18px; }
+.fish-hotspots__list { display: grid; gap: 8px; }
+.fish-hotspots__list button { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 9px; min-height: 52px; text-align: left; }
+.fish-hotspots__list button[aria-pressed='true'] { background: rgba(138, 215, 216, .16); box-shadow: inset 2px 0 var(--orca-accent); }
+.fish-hotspots__list strong, .fish-hotspots__list small { display: block; }
+.fish-hotspots__list strong { font-size: 12px; font-weight: 600; }
+.fish-hotspots__list small { margin-top: 2px; font-size: 10px; }
+.fish-hotspots__map-wrap { position: relative; height: 230px; overflow: hidden; border: 1px solid rgba(225,247,242,.12); border-radius: var(--radius-sm); background: rgba(10,44,56,.7); }
+.fish-hotspots__map,
+.fish-hotspots__map .maplibregl-map,
+.fish-hotspots__map .maplibregl-canvas-container,
+.fish-hotspots__map .maplibregl-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+.fish-hotspots__details { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(225,247,242,.14); }
+.fish-hotspots__details h3 { margin: 0 0 12px; font-size: 18px; }
+.fish-hotspots__details dl { display: grid; gap: 8px; margin: 0; }
+.fish-hotspots__details dl > div { display: flex; justify-content: space-between; gap: 14px; color: var(--orca-text-secondary); font-size: 12px; }
+.fish-hotspots__details dd { margin: 0; color: var(--foam); text-align: right; }
+.fish-hotspots__nearby { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.fish-hotspots__nearby span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 999px; background: rgba(138,215,216,.1); color: var(--foam); font-size: 11px; }
+.app-shell .fish-marker { display: grid; gap: 4px; justify-items: center; border: 0; background: transparent; color: #f6fffc; cursor: pointer; }
+.app-shell .fish-marker__icon { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid rgba(246,255,252,.9); border-radius: 50%; background: rgba(5,35,45,.82); box-shadow: 0 8px 18px rgba(0,8,12,.32); font: 10px var(--font-mono); }
+.app-shell .fish-marker__label { max-width: 112px; padding: 3px 6px; border-radius: 999px; background: rgba(5,35,45,.78); font-size: 9px; white-space: nowrap; }
 
 @media (max-width: 850px) {
   .app-shell--embedded {
