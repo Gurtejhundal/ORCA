@@ -33,7 +33,7 @@ export type MapLayerOptions = {
 };
 export type MapMarker = {
   id: string;
-  kind: 'location' | 'origin' | 'vessel' | 'zone' | 'fish';
+  kind: 'location' | 'origin' | 'vessel' | 'zone';
   label?: string;
   onClick?: () => void;
   position: MapPosition;
@@ -114,22 +114,6 @@ function colorExpression(color: string, palette?: PropertyPalette): string {
 }
 
 function createMarkerElement(marker: MapMarker): HTMLElement {
-  if (marker.kind === 'fish') {
-    const element = document.createElement('button');
-    element.type = 'button';
-    element.className = 'fish-marker';
-    element.setAttribute('aria-label', marker.title);
-    const icon = document.createElement('span');
-    icon.className = 'fish-marker__icon';
-    icon.textContent = marker.label ?? 'F';
-    const label = document.createElement('span');
-    label.className = 'fish-marker__label';
-    label.textContent = marker.title;
-    element.append(icon, label);
-    if (marker.onClick) element.onclick = marker.onClick;
-    return element;
-  }
-
   if (marker.kind === 'zone') {
     const element = document.createElement('button');
     element.type = 'button';
