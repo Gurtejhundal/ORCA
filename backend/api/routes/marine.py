@@ -45,7 +45,14 @@ async def status(request: Request, svc: MarineService = Depends(service)):
     llm_status = 'mock' if isinstance(llm_prov, MockLLMProvider) else 'configured_unverified' if llm_prov else 'unavailable'
 
     sources['voice'] = {'status': voice_status, 'provider': 'bhashini_or_browser'}
-    sources['llm'] = {'status': llm_status}
+    configured_provider = svc.settings.llm_provider.lower()
+    configured_model = (svc.settings.groq_model if configured_provider == 'groq'
+                        else svc.settings.llm_model)
+    sources['llm'] = {
+        'status': llm_status,
+        'provider': configured_provider,
+        'model': configured_model if llm_status != 'mock' else None,
+    }
 
     freshness_svc = svc.freshness
     freshness_summary = freshness_svc.get_summary()

@@ -322,6 +322,40 @@ class OpenAILLMProvider(LLMProvider):
         return parse_structured_output(raw, schema)
 
 
+class GroqLLMProvider(OpenAILLMProvider):
+    """Groq's fixed OpenAI-compatible endpoint with JSON mode for agent schemas."""
+
+    def __init__(self, api_key: str, model: str = 'llama-3.3-70b-versatile'):
+        super().__init__(api_key=api_key, model=model, base_url='https://api.groq.com/openai/v1')
+
+    async def generate_structured(self, prompt: str, schema: Type[T], system_prompt: str | None = None,
+                                  temperature: float = 0.0) -> T:
+        schema_json = json.dumps(schema.model_json_schema())
+        augmented_prompt = (
+            f"{prompt}\n\nRespond ONLY with a valid JSON object matching this JSON Schema:\n"
+            f"{schema_json}\nDo not include markdown or commentary outside the JSON object."
+        )
+        headers = {'Authorization': f'Bearer {self.api_key}', 'Content-Type': 'application/json'}
+        messages = []
+        if system_prompt:
+            messages.append({'role': 'system', 'content': system_prompt})
+        messages.append({'role': 'user', 'content': augmented_prompt})
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f'{self.base_url}/chat/completions',
+                headers=headers,
+                json={
+                    'model': self.model,
+                    'messages': messages,
+                    'temperature': temperature,
+                    'response_format': {'type': 'json_object'},
+                },
+            )
+            response.raise_for_status()
+            raw = response.json()['choices'][0]['message']['content']
+        return parse_structured_output(raw, schema)
+
+
 class GeminiLLMProvider(LLMProvider):
     """Google Gemini LLM Provider."""
 
@@ -367,6 +401,9 @@ def get_llm_provider(settings: Settings) -> LLMProvider:
         return GeminiLLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gemini-3.1-flash-lite')
     elif provider == 'openai' and settings.llm_api_key:
         return OpenAILLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'gpt-4o-mini')
-    elif provider == 'groq' and settings.llm_api_key:
-        return OpenAILLMProvider(api_key=settings.llm_api_key, model=settings.llm_model or 'llama-3.3-70b-versatile', base_url='https://api.groq.com/openai/v1')
+    elif provider == 'groq' and (settings.groq_api_key or settings.llm_api_key):
+        return GroqLLMProvider(
+            api_key=settings.groq_api_key or settings.llm_api_key,
+            model=settings.groq_model or 'llama-3.3-70b-versatile',
+        )
     return MockLLMProvider()

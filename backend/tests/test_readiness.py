@@ -204,6 +204,39 @@ def test_gemini_uses_private_header_and_reads_complete_answers(monkeypatch):
         asyncio.run(provider.generate_text('blocked', system_prompt='Be helpful.'))
 
 
+def test_groq_uses_provider_specific_key_model_and_json_mode(monkeypatch):
+    import asyncio
+    import json
+    import httpx
+    from backend.agents.schemas import IntentOutput
+    from backend.llm.provider import GroqLLMProvider, get_llm_provider
+
+    provider = get_llm_provider(Settings(
+        _env_file=None,
+        llm_provider='groq',
+        llm_model='gemini-should-not-be-sent',
+        llm_api_key='generic-should-not-be-sent',
+        groq_api_key='groq-test-key',
+        groq_model='llama-3.3-70b-versatile',
+    ))
+    assert isinstance(provider, GroqLLMProvider)
+    real_client = httpx.AsyncClient
+
+    def respond(request):
+        assert request.url == 'https://api.groq.com/openai/v1/chat/completions'
+        assert request.headers['authorization'] == 'Bearer groq-test-key'
+        payload = json.loads(request.content)
+        assert payload['model'] == 'llama-3.3-70b-versatile'
+        assert payload['response_format'] == {'type': 'json_object'}
+        return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps({
+            'intent': 'general_conversation',
+        })}}]})
+
+    monkeypatch.setattr(httpx, 'AsyncClient', lambda **kwargs: real_client(transport=httpx.MockTransport(respond), **kwargs))
+    output = asyncio.run(provider.generate_structured('Hello', IntentOutput, system_prompt='Classify.'))
+    assert output.intent == 'general_conversation'
+
+
 def test_zero_longitude_gps_is_preserved():
     location = resolve_location('conditions', explicit_location={'lat': 10, 'lon': 0})
     assert location and location.lon == 0

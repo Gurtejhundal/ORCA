@@ -267,6 +267,8 @@ Supported actions:
 | `LLM_PROVIDER` | LLM backend: `gemini`, `openai`, `groq`, or `mock` (default `mock`) |
 | `LLM_MODEL` | Target model name (e.g. `gemini-1.5-flash`, `gpt-4o-mini`) |
 | `LLM_API_KEY` | API key for LLM provider (not required if `LLM_PROVIDER=mock`) |
+| `GROQ_API_KEY` | Groq API key used when `LLM_PROVIDER=groq`; preferred over the generic `LLM_API_KEY` |
+| `GROQ_MODEL` | Groq model ID; defaults to `llama-3.3-70b-versatile` |
 | `BHASHINI_API_KEY` | Bhashini ULCA inference API authorization key |
 | `BHASHINI_USER_ID` | Bhashini ULCA user ID |
 | `BHASHINI_BASE_URL` | Bhashini inference endpoint (default `https://dhruva-api.bhashini.gov.in/services/inference/pipeline`) |
